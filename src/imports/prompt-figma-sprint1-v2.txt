@@ -1,0 +1,78 @@
+DISEÑO DE PROTOTIPO — SPRINT 1 (MVP) — SISTEMA DE CADENA DE SUMINISTRO TIPO ZARA
+
+Diseña un prototipo de interfaz web para la primera versión (Sprint 1) de un sistema interno de gestión de cadena de suministro tipo Zara. Es un proyecto académico universitario: diseño simple, limpio, funcional, fácil de entender — nada corporativo ni recargado. Paleta neutra (blancos, grises, un solo color de acento discreto tipo azul o verde apagado), tipografía sans-serif estándar, layout con sidebar de navegación + contenido principal, tarjetas y tablas simples. Sin ilustraciones elaboradas ni gradientes llamativos.
+
+CONTEXTO
+Esta primera versión cubre solo las funcionalidades base: dar de alta el catálogo (productos, tiendas, centros de distribución), crear y asignar usuarios, y permitir el registro inicial de operación (ventas e inventario) en tienda y en centro de distribución. Aún no incluye reposición, recomendaciones ni reportes — eso queda para sprints siguientes. 3 roles activos en esta fase: Administrador, Encargado de tienda, Encargado de centro de distribución. Cada rol, al iniciar sesión, ve únicamente su propio panel y los datos de la(s) ubicación(es) que tiene asignada(s) — un encargado de tienda nunca ve datos de otra tienda ni de un centro de distribución, y viceversa.
+
+LOGIN
+Pantalla con campos de correo y contraseña, botón de "Iniciar sesión". Al autenticarse, redirige automáticamente al panel correspondiente según el rol del usuario (Administrador, Encargado de tienda o Encargado de centro de distribución). Incluye un estado de error visible para credenciales inválidas.
+
+PANTALLAS DEL ADMINISTRADOR
+
+1. Panel de usuarios
+- Tabla con columnas: nombre, correo, rol, ubicación asignada, estado.
+- Botón "Crear usuario" que abre un formulario con: nombre, correo, rol (lista desplegable: Administrador / Encargado de tienda / Encargado de CD / Planificador).
+- Acción "Asignar ubicación" sobre cada usuario: selector de tienda o centro de distribución (una o varias ubicaciones), con opción de reasignar a una ubicación distinta si el usuario ya tenía una asignada.
+- Estado vacío: mensaje simple si aún no hay usuarios creados.
+
+2. Catálogo de productos
+- Tabla con columnas: identificador, nombre, categoría, precio, unidad de medida, estado (activo/inactivo).
+- Botón "Crear producto" que abre un formulario con: identificador, nombre, categoría, precio, unidad de medida.
+- Buscador/filtro simple por nombre o categoría.
+
+3. Gestión de tiendas
+- Tabla con columnas: nombre, dirección, ciudad, estado.
+- Botón "Crear tienda" que abre un formulario con: nombre, dirección, ciudad.
+
+4. Gestión de centros de distribución
+- Tabla con columnas: nombre, dirección, capacidad, zona de cobertura (tiendas que abastece), estado.
+- Botón "Crear centro de distribución" que abre un formulario con: nombre, dirección, capacidad, y un selector múltiple para elegir las tiendas que ese centro puede abastecer (zona de cobertura).
+
+PANTALLAS DEL ENCARGADO DE TIENDA
+
+5. Registrar venta
+- Formulario simple con: producto (buscador/selector), cantidad, fecha y hora (puede autocompletarse con la fecha/hora actual).
+- Botón "Registrar venta".
+
+6. Inventario de mi tienda
+- Tabla con columnas: producto, categoría, cantidad disponible.
+- Buscador/filtro por nombre, categoría o identificador.
+- Resaltado visual (color o ícono) en los productos cuya cantidad está por debajo de un mínimo definido.
+- Pantalla de solo consulta en este sprint (sin edición manual de cantidades).
+
+PANTALLAS DEL ENCARGADO DE CENTRO DE DISTRIBUCIÓN
+
+7. Inventario de mi centro de distribución
+- Tabla con columnas: producto, categoría, cantidad disponible.
+- Resaltado visual en los productos con cantidad por debajo del mínimo definido.
+- Pantalla de solo consulta en este sprint (sin edición manual de cantidades).
+
+8. Registrar ingreso de mercancía
+- Formulario con: producto (buscador/selector), cantidad, origen (selector: "Proveedor" u "Otro centro de distribución").
+- Botón "Registrar ingreso".
+
+ESTILO Y TONO
+Interfaz de trabajo interno tipo dashboard/back-office, no de e-commerce. Prioriza claridad y jerarquía visual sobre estética elaborada. Estados (activo/inactivo, stock bajo) representados con etiquetas de color simples (badges), sin exagerar. Mantén consistencia de componentes entre las pantallas de los 3 roles: misma barra lateral de navegación, mismos estilos de tabla, formulario y botones.
+
+FLUJO DE NAVEGACIÓN
+Login → 3 paneles según rol.
+Administrador: Panel → Usuarios / Productos / Tiendas / Centros de distribución (4 pantallas, navegables desde la misma barra lateral).
+Encargado de tienda: Panel → Registrar venta / Inventario (consulta) (2 pantallas).
+Encargado de centro de distribución: Panel → Inventario (consulta) / Registrar ingreso de mercancía (2 pantallas).
+
+Nota: el rol Analista/Planificador no tiene pantallas en este sprint — sus historias (patrones de demanda, recomendaciones de reposición, reportes) están programadas para sprints posteriores.
+
+TABLA DE TRAZABILIDAD (HISTORIA → PANTALLA)
+HU-29 Iniciar sesión según rol asignado → Login
+HU-01 Crear cuenta de usuario y asignar rol → Panel de usuarios (crear usuario)
+HU-02 Asignar (o reasignar) tienda o CD a un usuario → Panel de usuarios (asignar ubicación)
+HU-04 Crear producto → Catálogo de productos (crear producto)
+HU-07 Crear tienda → Gestión de tiendas (crear tienda)
+HU-09 Crear centro de distribución → Gestión de centros de distribución (crear CD)
+HU-11 Registrar venta → Registrar venta
+HU-12 Consultar inventario de mi tienda → Inventario de mi tienda
+HU-16 Consultar inventario de mi centro de distribución → Inventario de mi centro de distribución
+HU-18 Registrar ingreso de mercancía al centro de distribución → Registrar ingreso de mercancía
+
+Total: 10 de 10 historias Sprint 1 · Must cubiertas en 9 pantallas (1 login + 4 admin + 2 tienda + 2 CD).
