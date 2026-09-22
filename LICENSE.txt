@@ -1,0 +1,5 @@
+Copyright (C) 2026 SupplyCore. Todos los derechos reservados.
+
+Por la presente se prohíbe estrictamente a cualquier persona o entidad el uso, copia, modificación, distribución, sublicencia o venta de este software, ya sea para fines comerciales, públicos o de uso privado, sin la autorización previa y por escrito de los titulares del copyright.
+
+El código se muestra exclusivamente con fines de lectura, revisión académica o portafolio.
