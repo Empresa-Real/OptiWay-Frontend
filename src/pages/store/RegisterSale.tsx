@@ -1,9 +1,14 @@
 import { useState } from "react";
-import type { SaleRecord } from "../../types";
-import { seedProducts } from "../../data/seed";
+import type { SaleRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
 
-export default function RegisterSale({ storeId }: { storeId: number }) {
+export default function RegisterSale({
+  storeId,
+  products,
+}: {
+  storeId: number;
+  products: Product[];
+}) {
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [form, setForm] = useState({ productId: "", quantity: "", date: new Date().toISOString().slice(0, 16) });
   const [success, setSuccess] = useState(false);
@@ -17,7 +22,9 @@ export default function RegisterSale({ storeId }: { storeId: number }) {
     setTimeout(() => setSuccess(false), 3000);
   };
 
-  const productName = (id: string) => seedProducts.find((p) => p.id === id)?.name ?? id;
+  const productName = (id: string) => products.find((p) => p.id === id)?.name ?? id;
+
+  const activeProducts = products.filter((p) => p.status === "active");
 
   return (
     <div>
@@ -29,8 +36,10 @@ export default function RegisterSale({ storeId }: { storeId: number }) {
               <Label>Producto</Label>
               <Select value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })} required>
                 <option value="">Selecciona un producto…</option>
-                {seedProducts.filter((p) => p.status === "active").map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                {activeProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.id})
+                  </option>
                 ))}
               </Select>
             </div>

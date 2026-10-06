@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { User, Role } from "./types";
-import { seedUsers, seedStores, seedDCs, seedStoreInventory, seedDCInventory } from "./data/seed";
+import type { User, Role, Product } from "./types";
+import { seedUsers, seedStores, seedDCs, seedStoreInventory, seedDCInventory, seedProducts } from "./data/seed";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -14,6 +14,8 @@ import InventoryView from "./pages/shared/InventoryView";
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<string>("");
+  const [users, setUsers] = useState<User[]>(seedUsers);
+  const [products, setProducts] = useState<Product[]>(seedProducts);
 
   const defaultScreen = (role: Role) => {
     if (role === "admin") return "users";
@@ -32,8 +34,16 @@ export default function App() {
     setScreen("");
   };
 
+  const handleUpdateUsers = (newUsers: User[]) => {
+    setUsers(newUsers);
+  };
+
+  const handleUpdateProducts = (newProducts: Product[]) => {
+    setProducts(newProducts);
+  };
+
   if (!currentUser || currentUser.role === "planner") {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} users={users} />;
   }
 
   const role = currentUser.role as Role;
@@ -53,27 +63,36 @@ export default function App() {
 
   const renderScreen = () => {
     switch (screen) {
-      case "users": return <UsersPanel stores={seedStores} dcs={seedDCs} />;
-      case "products": return <ProductsPanel />;
-      case "stores": return <StoresPanel />;
-      case "dcs": return <DCsPanel stores={seedStores} />;
-      case "sale": return <RegisterSale storeId={storeId} />;
-      case "inventory": return (
-        <InventoryView
-          items={seedStoreInventory[storeId] ?? []}
-          title="Inventario de mi tienda"
-          subtitle={`${seedStores.find((s) => s.id === storeId)?.name ?? ""} · Solo consulta`}
-        />
-      );
-      case "dc-inventory": return (
-        <InventoryView
-          items={seedDCInventory[dcId] ?? []}
-          title="Inventario de mi centro de distribución"
-          subtitle={`${seedDCs.find((d) => d.id === dcId)?.name ?? ""} · Solo consulta`}
-        />
-      );
-      case "dc-receipt": return <RegisterReceipt dcId={dcId} />;
-      default: return null;
+      case "users":
+        return <UsersPanel stores={seedStores} dcs={seedDCs} users={users} onUpdateUsers={handleUpdateUsers} />;
+      case "products":
+        return <ProductsPanel products={products} onUpdateProducts={handleUpdateProducts} currentUserName={currentUser.name} />;
+      case "stores":
+        return <StoresPanel />;
+      case "dcs":
+        return <DCsPanel stores={seedStores} />;
+      case "sale":
+        return <RegisterSale storeId={storeId} products={products} />;
+      case "inventory":
+        return (
+          <InventoryView
+            items={seedStoreInventory[storeId] ?? []}
+            title="Inventario de mi tienda"
+            subtitle={`${seedStores.find((s) => s.id === storeId)?.name ?? ""} · Solo consulta`}
+          />
+        );
+      case "dc-inventory":
+        return (
+          <InventoryView
+            items={seedDCInventory[dcId] ?? []}
+            title="Inventario de mi centro de distribución"
+            subtitle={`${seedDCs.find((d) => d.id === dcId)?.name ?? ""} · Solo consulta`}
+          />
+        );
+      case "dc-receipt":
+        return <RegisterReceipt dcId={dcId} />;
+      default:
+        return null;
     }
   };
 

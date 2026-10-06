@@ -1,4 +1,4 @@
-import type { Product, Store, DC, User, InventoryItem, SaleRecord, ReceiptRecord } from "../types";
+import type { Product, Store, DC, User, InventoryItem, SaleRecord, ReceiptRecord, ProductEdit } from "../types";
 
 export const seedProducts: Product[] = [
   { id: "P001", name: "Camisa Oxford", category: "Camisas", price: 39.99, unit: "unidad", status: "active" },
@@ -9,6 +9,7 @@ export const seedProducts: Product[] = [
   { id: "P006", name: "Camiseta Básica", category: "Camisas", price: 19.99, unit: "unidad", status: "inactive" },
   { id: "P007", name: "Falda Plisada", category: "Faldas", price: 34.99, unit: "unidad", status: "active" },
   { id: "P008", name: "Jersey Lana", category: "Sweaters", price: 54.99, unit: "unidad", status: "active" },
+  { id: "P009", name: "Cinturón Clásico", category: "Accesorios", price: 29.99, unit: "unidad", status: "active" },
 ];
 
 export const seedStores: Store[] = [
@@ -74,4 +75,15 @@ export const credentials: Record<string, { password: string; userId: number }> =
   "maria@empresa.com": { password: "tienda456", userId: 3 },
   "roberto@empresa.com": { password: "cd123", userId: 4 },
   "luisa@empresa.com": { password: "cd456", userId: 5 },
+};
+
+// Seed edit history for products (ProductEdit[])
+export const seedProductEdits: Record<string, ProductEdit[]> = {
+  "P001": [
+    { date: "2025-06-15", user: "Ana González", change: "Precio: 35.99 → 39.99; Categoría: Camisas → Camisas" },
+    { date: "2025-05-20", user: "Roberto Silva", change: "Nombre: Camisa Oxford Slim → Camisa Oxford" },
+  ],
+  "P002": [
+    { date: "2025-06-10", user: "Ana González", change: "Precio: 44.99 → 49.99; Unidad: par → unidad" },
+  ],
 };

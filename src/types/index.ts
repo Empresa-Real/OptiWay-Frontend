@@ -57,3 +57,9 @@ export interface ReceiptRecord {
   date: string;
   dcId: number;
 }
+
+export interface ProductEdit {
+  date: string;
+  user: string;
+  change: string;
+}

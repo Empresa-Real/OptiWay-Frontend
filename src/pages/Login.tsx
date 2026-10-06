@@ -1,9 +1,15 @@
 import { useState } from "react";
 import type { User } from "../types";
-import { credentials, seedUsers } from "../data/seed";
+import { credentials } from "../data/seed";
 import { Input, Label, Btn } from "../components/ui";
 
-export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
+export default function Login({
+  onLogin,
+  users,
+}: {
+  onLogin: (user: User) => void;
+  users: User[];
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,8 +21,14 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
       setError("Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.");
       return;
     }
-    const user = seedUsers.find((u) => u.id === cred.userId);
-    if (user) onLogin(user);
+    const user = users.find((u) => u.id === cred.userId);
+    if (user) {
+      if (user.status === "inactive") {
+        setError("Tu cuenta está desactivada. Contacta al administrador.");
+        return;
+      }
+      onLogin(user);
+    }
   };
 
   return (
