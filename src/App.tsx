@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Role, Product } from "./types";
-import { seedUsers, seedStores, seedDCs, seedStoreInventory, seedDCInventory, seedProducts } from "./data/seed";
+import type { User, Role, Product, Store, DC } from "./types";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -13,12 +12,16 @@ import InventoryView from "./pages/shared/InventoryView";
 import SetPassword from "./pages/SetPassword";
 import { getCurrentUser, logout } from "./services/auth";
 import { supabase } from "./services/supabase";
+import { getTiendas } from "./services/tiendas";
+import { getCentrosDistribucion } from "./services/centrosDistribucion";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<string>("");
-  const [users, setUsers] = useState<User[]>(seedUsers);
-  const [products, setProducts] = useState<Product[]>(seedProducts);
+  const [users, setUsers] = useState<User[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [dcs, setDCs] = useState<DC[]>([]);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isSettingPassword, setIsSettingPassword] = useState<boolean>(() => {
     const hash = window.location.hash;
@@ -69,6 +72,23 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    async function loadAuxData() {
+      try {
+        const [storesData, dcsData] = await Promise.all([
+          getTiendas().catch(() => []),
+          getCentrosDistribucion().catch(() => []),
+        ]);
+        setStores(storesData || []);
+        setDCs(dcsData || []);
+      } catch (err) {
+        console.warn("Aviso al cargar sucursales:", err);
+      }
+    }
+    loadAuxData();
+  }, [currentUser]);
+
   const handlePasswordSet = async () => {
     window.history.replaceState(null, "", window.location.pathname);
     setIsSettingPassword(false);
@@ -97,6 +117,9 @@ export default function App() {
     }
     setCurrentUser(null);
     setScreen("");
+    setStores([]);
+    setDCs([]);
+    setUsers([]);
   };
 
   const handleUpdateUsers = (newUsers: User[]) => {
@@ -142,10 +165,10 @@ export default function App() {
   const locationName = () => {
     if (role === "admin") return "";
     if (role === "store") {
-      const s = seedStores.find((x) => x.id === currentUser.locationId);
+      const s = stores.find((x) => x.id === currentUser.locationId);
       return s ? s.name : "";
     }
-    const d = seedDCs.find((x) => x.id === currentUser.locationId);
+    const d = dcs.find((x) => x.id === currentUser.locationId);
     return d ? d.name : "";
   };
 
@@ -155,29 +178,29 @@ export default function App() {
   const renderScreen = () => {
     switch (screen) {
       case "users":
-        return <UsersPanel stores={seedStores} dcs={seedDCs} users={users} onUpdateUsers={handleUpdateUsers} />;
+        return <UsersPanel stores={stores} dcs={dcs} users={users} onUpdateUsers={handleUpdateUsers} />;
       case "products":
         return <ProductsPanel products={products} onUpdateProducts={handleUpdateProducts} currentUserName={currentUser.name} />;
       case "stores":
         return <StoresPanel />;
       case "dcs":
-        return <DCsPanel stores={seedStores} />;
+        return <DCsPanel stores={stores} />;
       case "sale":
         return <RegisterSale storeId={storeId} products={products} />;
       case "inventory":
         return (
           <InventoryView
-            items={seedStoreInventory[storeId] ?? []}
+            items={[]}
             title="Inventario de mi tienda"
-            subtitle={`${seedStores.find((s) => s.id === storeId)?.name ?? ""} · Solo consulta`}
+            subtitle={`${stores.find((s) => s.id === storeId)?.name ?? "Tienda"} · Solo consulta`}
           />
         );
       case "dc-inventory":
         return (
           <InventoryView
-            items={seedDCInventory[dcId] ?? []}
+            items={[]}
             title="Inventario de mi centro de distribución"
-            subtitle={`${seedDCs.find((d) => d.id === dcId)?.name ?? ""} · Solo consulta`}
+            subtitle={`${dcs.find((d) => d.id === dcId)?.name ?? "CD"} · Solo consulta`}
           />
         );
       case "dc-receipt":

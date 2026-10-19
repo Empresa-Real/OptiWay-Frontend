@@ -110,36 +110,6 @@ export default function Login({
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Btn>
           </form>
-
-          <div className="mt-8 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-            <p className="text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wide">Cuentas de prueba</p>
-            <div className="space-y-1.5 text-xs text-[var(--text-muted)]">
-              <div
-                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
-                onClick={() => { setEmail("ana@empresa.com"); setPassword("admin123"); setError(""); }}
-                title="Haz clic para autocompletar"
-              >
-                <span>ana@empresa.com</span>
-                <span className="font-mono">admin123</span>
-              </div>
-              <div
-                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
-                onClick={() => { setEmail("carlos@empresa.com"); setPassword("tienda123"); setError(""); }}
-                title="Haz clic para autocompletar"
-              >
-                <span>carlos@empresa.com</span>
-                <span className="font-mono">tienda123</span>
-              </div>
-              <div
-                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
-                onClick={() => { setEmail("roberto@empresa.com"); setPassword("cd123"); setError(""); }}
-                title="Haz clic para autocompletar"
-              >
-                <span>roberto@empresa.com</span>
-                <span className="font-mono">cd123</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
