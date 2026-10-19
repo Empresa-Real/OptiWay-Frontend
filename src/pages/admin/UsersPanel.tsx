@@ -6,7 +6,7 @@ import {
   createUsuario,
   updateRolUsuario,
   deleteUsuario,
-  ApiError,
+  cleanErrorMessage,
 } from "../../services/usuarios";
 
 
@@ -166,12 +166,13 @@ export default function UsersPanel({
 
   const renderErrorBox = (message: string | null) => {
     if (!message) return null;
+    const clean = cleanErrorMessage(message);
     return (
       <div className="flex items-start gap-2.5 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3.5 py-2.5 border border-red-200">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
         </svg>
-        <span className="font-medium leading-relaxed">{message}</span>
+        <span className="font-medium leading-relaxed">{clean}</span>
       </div>
     );
   };

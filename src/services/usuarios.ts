@@ -21,6 +21,73 @@ export class ApiError extends Error {
 }
 
 /**
+ * Limpia y traduce cualquier mensaje de error técnico o que contenga JSON incrustado
+ * para que el usuario SIEMPRE vea un texto humano, claro y sin fragmentos de código o llaves {}.
+ */
+export function cleanErrorMessage(rawMessage: string, statusCode?: number): string {
+  if (!rawMessage) {
+    return "Ocurrió un error inesperado al procesar la solicitud.";
+  }
+
+  // 1. Caso crítico: límite de correos de invitación por hora de Supabase Auth (Rate Limit)
+  if (
+    rawMessage.includes("over_email_send_rate_limit") ||
+    rawMessage.includes("email rate limit exceeded") ||
+    rawMessage.includes("429")
+  ) {
+    return "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario.";
+  }
+
+  // 2. Si el mensaje contiene un fragmento JSON incrustado (ej. Error (...): { "code": ... })
+  const jsonMatch = rawMessage.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.msg && typeof parsed.msg === "string") {
+        if (parsed.msg.includes("email rate limit")) {
+          return "Límite de envío de correos alcanzado. Por favor espera unos minutos antes de registrar otro usuario.";
+        }
+        return parsed.msg;
+      }
+      if (parsed.error_description && typeof parsed.error_description === "string") {
+        return parsed.error_description;
+      }
+      if (parsed.error && typeof parsed.error === "string") {
+        return cleanErrorMessage(parsed.error, statusCode);
+      }
+      if (parsed.message && typeof parsed.message === "string") {
+        return cleanErrorMessage(parsed.message, statusCode);
+      }
+    } catch {
+      // Ignorar error de parseo
+    }
+
+    // Si no se pudo extraer una propiedad limpia, eliminamos la sección {...} y dos puntos
+    const stripped = rawMessage.replace(/\{[\s\S]*\}/, "").replace(/:\s*$/, "").trim();
+    if (stripped.length > 5) {
+      return stripped;
+    }
+  }
+
+  // 3. Mapeo por palabras clave comunes o status codes
+  const lower = rawMessage.toLowerCase();
+  if (lower.includes("duplicate") || lower.includes("ya existe") || statusCode === 409) {
+    return "El correo electrónico ya se encuentra registrado en el sistema.";
+  }
+  if (lower.includes("not found") || statusCode === 404) {
+    return "El usuario solicitado no fue encontrado en el sistema.";
+  }
+  if (lower.includes("forbidden") || lower.includes("denegado") || statusCode === 403) {
+    return "No tienes permisos de administrador para realizar esta operación.";
+  }
+  if (statusCode === 502) {
+    return "No fue posible conectar con el servicio de autenticación. Intenta nuevamente.";
+  }
+
+  return rawMessage;
+}
+
+/**
  * Procesa la respuesta de error del backend extrayendo un mensaje claro y amigable
  * para el usuario, guardando el JSON únicamente para depuración técnica en consola.
  */
@@ -40,7 +107,7 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
         }
       }
     } catch {
-      if (text && !text.trim().startsWith("{") && !text.trim().startsWith("<")) {
+      if (text) {
         specificMessage = text.trim();
       }
     }
@@ -48,33 +115,8 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
     // Si no se pudo leer el cuerpo
   }
 
-  // Si el backend no devolvió un mensaje específico o devolvió un mensaje genérico,
-  // mapeamos el código de estado HTTP a un mensaje claro y comprensible:
-  if (!specificMessage || specificMessage.startsWith("{")) {
-    switch (response.status) {
-      case 400:
-        specificMessage = "Los datos ingresados son inválidos. Por favor verifica los campos.";
-        break;
-      case 401:
-        specificMessage = "Tu sesión ha expirado o no es válida. Inicia sesión nuevamente.";
-        break;
-      case 403:
-        specificMessage = "No tienes permisos de administrador para realizar esta operación.";
-        break;
-      case 404:
-        specificMessage = "El usuario solicitado no fue encontrado en el sistema.";
-        break;
-      case 409:
-        specificMessage = "El correo electrónico ya se encuentra registrado en el sistema.";
-        break;
-      case 502:
-        specificMessage = "No fue posible conectar con el servicio de autenticación. Intenta nuevamente.";
-        break;
-      default:
-        specificMessage = defaultMessage;
-        break;
-    }
-  }
+  // Limpiar y sanitizar cualquier JSON incrustado en el texto devuelto por el servidor
+  specificMessage = cleanErrorMessage(specificMessage || defaultMessage, response.status);
 
   return new ApiError(response.status, specificMessage, errorData);
 }
