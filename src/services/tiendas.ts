@@ -95,3 +95,27 @@ export async function createTienda(payload: { name: string; address: string; cit
     status: "active",
   };
 }
+
+/**
+ * Asigna un encargado a una tienda.
+ * Endpoint: PUT /api/tiendas/{id}/encargado
+ */
+export async function asignarEncargadoTienda(id: number, encargadoId: number): Promise<BackendTienda> {
+  const token = await getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}/api/tiendas/${id}/encargado`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ encargadoId }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error al asignar encargado (${response.status}): ${errorText || response.statusText}`);
+  }
+
+  return response.json();
+}

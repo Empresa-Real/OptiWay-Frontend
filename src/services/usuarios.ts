@@ -26,6 +26,11 @@ export class ApiError extends Error {
  */
 export function cleanErrorMessage(rawMessage: string, statusCode?: number): string {
   if (!rawMessage) {
+    if (statusCode === 409) return "El correo electrónico ya se encuentra registrado en el sistema.";
+    if (statusCode === 403) return "No tienes permisos de administrador para realizar esta operación.";
+    if (statusCode === 404) return "El usuario solicitado no fue encontrado en el sistema.";
+    if (statusCode === 400) return "Los datos ingresados son inválidos. Por favor verifica los campos.";
+    if (statusCode === 502) return "No fue posible conectar con el servicio de autenticación. Intenta nuevamente.";
     return "Ocurrió un error inesperado al procesar la solicitud.";
   }
 
