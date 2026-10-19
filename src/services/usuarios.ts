@@ -24,7 +24,45 @@ export class ApiError extends Error {
  * Limpia y traduce cualquier mensaje de error técnico o que contenga JSON incrustado
  * para que el usuario SIEMPRE vea un texto humano, claro y sin fragmentos de código o llaves {}.
  */
-export function cleanErrorMessage(rawMessage: string, statusCode?: number): string {
+export function cleanErrorMessage(
+  rawMessage: string,
+  statusCode?: number,
+  errorData?: Record<string, any> | null
+): string {
+  // 1. Si viene errorData estructurado (como en la última actualización del backend con "detalle" y "status")
+  if (errorData) {
+    const detalle = errorData.detalle;
+    const subStatus = errorData.status;
+
+    // Verificar Rate Limit en detalle anidado o status
+    if (
+      subStatus === 429 ||
+      detalle?.code === 429 ||
+      detalle?.error_code === "over_email_send_rate_limit" ||
+      (typeof detalle?.msg === "string" && detalle.msg.includes("email rate limit")) ||
+      (typeof detalle === "string" && detalle.includes("rate_limit"))
+    ) {
+      return "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario.";
+    }
+
+    // Correo con formato inválido en Supabase Auth
+    if (
+      subStatus === 422 ||
+      detalle?.code === 422 ||
+      detalle?.error_code === "email_address_invalid"
+    ) {
+      return "El correo electrónico no tiene un formato válido o fue rechazado por el proveedor de autenticación.";
+    }
+
+    // Mensaje directo en detalle
+    if (typeof detalle?.msg === "string" && detalle.msg.trim()) {
+      return detalle.msg.trim();
+    }
+    if (typeof detalle?.error_description === "string" && detalle.error_description.trim()) {
+      return detalle.error_description.trim();
+    }
+  }
+
   if (!rawMessage) {
     if (statusCode === 409) return "El correo electrónico ya se encuentra registrado en el sistema.";
     if (statusCode === 403) return "No tienes permisos de administrador para realizar esta operación.";
@@ -34,7 +72,7 @@ export function cleanErrorMessage(rawMessage: string, statusCode?: number): stri
     return "Ocurrió un error inesperado al procesar la solicitud.";
   }
 
-  // 1. Caso crítico: límite de correos de invitación por hora de Supabase Auth (Rate Limit)
+  // 2. Caso crítico: límite de correos de invitación por hora de Supabase Auth (Rate Limit)
   if (
     rawMessage.includes("over_email_send_rate_limit") ||
     rawMessage.includes("email rate limit exceeded") ||
@@ -43,7 +81,29 @@ export function cleanErrorMessage(rawMessage: string, statusCode?: number): stri
     return "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario.";
   }
 
-  // 2. Si el mensaje contiene un fragmento JSON incrustado (ej. Error (...): { "code": ... })
+  // Si el mensaje es el genérico de Supabase del backend
+  if (rawMessage === "Error de respuesta en Supabase Auth") {
+    return "No fue posible enviar la invitación por correo en Supabase Auth. Por favor intenta de nuevo en unos minutos.";
+  }
+
+  // Mensajes de validación de negocio del backend (UsuarioService.java)
+  if (rawMessage.includes("El correo ya esta registrado") || rawMessage.includes("El correo ya está registrado")) {
+    return "El correo electrónico ya se encuentra registrado en el sistema.";
+  }
+  if (rawMessage.includes("El nombre del usuario no puede estar vacio")) {
+    return "El nombre del usuario no puede estar vacío.";
+  }
+  if (rawMessage.includes("El email del usuario no puede estar vacio")) {
+    return "El correo electrónico del usuario no puede estar vacío.";
+  }
+  if (rawMessage.includes("El rol no es valido")) {
+    return "El rol seleccionado no es válido.";
+  }
+  if (rawMessage.includes("Acceso denegado")) {
+    return "Acceso denegado: solo administradores pueden realizar esta operación.";
+  }
+
+  // 3. Si el mensaje contiene un fragmento JSON incrustado (ej. Error (...): { "code": ... })
   const jsonMatch = rawMessage.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
@@ -74,7 +134,7 @@ export function cleanErrorMessage(rawMessage: string, statusCode?: number): stri
     }
   }
 
-  // 3. Mapeo por palabras clave comunes o status codes
+  // 4. Mapeo por palabras clave comunes o status codes
   const lower = rawMessage.toLowerCase();
   if (lower.includes("duplicate") || lower.includes("ya existe") || statusCode === 409) {
     return "El correo electrónico ya se encuentra registrado en el sistema.";
@@ -121,7 +181,7 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
   }
 
   // Limpiar y sanitizar cualquier JSON incrustado en el texto devuelto por el servidor
-  specificMessage = cleanErrorMessage(specificMessage || defaultMessage, response.status);
+  specificMessage = cleanErrorMessage(specificMessage || defaultMessage, response.status, errorData);
 
   return new ApiError(response.status, specificMessage, errorData);
 }

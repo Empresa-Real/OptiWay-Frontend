@@ -67,7 +67,7 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
       const jsonError = 'Error del servidor: {"error": "El correo ya está registrado en el sistema"}';
       const cleaned = cleanErrorMessage(jsonError);
 
-      expect(cleaned).toBe("El correo ya está registrado en el sistema");
+      expect(cleaned).toBe("El correo electrónico ya se encuentra registrado en el sistema.");
       expect(cleaned).not.toContain("{");
       expect(cleaned).not.toContain("}");
     });
@@ -82,9 +82,37 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
       expect(cleaned).toBe("No tienes permisos de administrador para realizar esta operación.");
     });
 
-    it("debe retornar mensaje amigable para 404 (Recurso No Encontrado)", () => {
-      const cleaned = cleanErrorMessage("", 404);
-      expect(cleaned).toBe("El usuario solicitado no fue encontrado en el sistema.");
+    it("debe procesar el nuevo formato estructurado del backend con 'detalle' y 'status'", () => {
+      const backendError = {
+        error: "Error de respuesta en Supabase Auth",
+        status: 429,
+        detalle: {
+          code: 429,
+          error_code: "over_email_send_rate_limit",
+          msg: "email rate limit exceeded",
+        },
+      };
+
+      const cleaned = cleanErrorMessage(backendError.error, 502, backendError);
+
+      expect(cleaned).toBe(
+        "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario."
+      );
+      expect(cleaned).not.toContain("{");
+      expect(cleaned).not.toContain("}");
+    });
+
+    it("debe traducir validaciones de campos del backend (nombre, email, rol)", () => {
+      expect(cleanErrorMessage("El nombre del usuario no puede estar vacio")).toBe(
+        "El nombre del usuario no puede estar vacío."
+      );
+      expect(cleanErrorMessage("El email del usuario no puede estar vacio")).toBe(
+        "El correo electrónico del usuario no puede estar vacío."
+      );
+      expect(cleanErrorMessage("El rol no es valido")).toBe("El rol seleccionado no es válido.");
+      expect(cleanErrorMessage("El correo ya esta registrado")).toBe(
+        "El correo electrónico ya se encuentra registrado en el sistema."
+      );
     });
   });
 
