@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { User, Role, Product } from "./types";
 import { seedUsers, seedStores, seedDCs, seedStoreInventory, seedDCInventory, seedProducts } from "./data/seed";
 import Login from "./pages/Login";
@@ -10,17 +10,77 @@ import DCsPanel from "./pages/admin/DCsPanel";
 import RegisterSale from "./pages/store/RegisterSale";
 import RegisterReceipt from "./pages/dc/RegisterReceipt";
 import InventoryView from "./pages/shared/InventoryView";
+import SetPassword from "./pages/SetPassword";
+import { getCurrentUser, logout } from "./services/auth";
+import { supabase } from "./services/supabase";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<string>("");
   const [users, setUsers] = useState<User[]>(seedUsers);
   const [products, setProducts] = useState<Product[]>(seedProducts);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [isSettingPassword, setIsSettingPassword] = useState<boolean>(() => {
+    const hash = window.location.hash;
+    const path = window.location.pathname;
+    return (
+      hash.includes("type=invite") ||
+      hash.includes("type=recovery") ||
+      hash.includes("error_code=otp_expired") ||
+      hash.includes("error_description=") ||
+      path.includes("set-password")
+    );
+  });
 
   const defaultScreen = (role: Role) => {
     if (role === "admin") return "users";
     if (role === "store") return "sale";
     return "dc-inventory";
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreSession() {
+      try {
+        const user = await getCurrentUser();
+        if (isMounted && user && user.role !== "planner") {
+          setCurrentUser(user);
+          setScreen(defaultScreen(user.role as Role));
+        }
+      } catch (err) {
+        console.error("Error al restaurar sesión previa:", err);
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
+      }
+    }
+    restoreSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsSettingPassword(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handlePasswordSet = async () => {
+    window.history.replaceState(null, "", window.location.pathname);
+    setIsSettingPassword(false);
+    try {
+      const user = await getCurrentUser();
+      if (user && user.role !== "planner") {
+        setCurrentUser(user);
+        setScreen(defaultScreen(user.role as Role));
+      }
+    } catch (err) {
+      console.error("Error al obtener usuario tras configurar contraseña:", err);
+    }
   };
 
   const handleLogin = (user: User) => {
@@ -29,7 +89,12 @@ export default function App() {
     setScreen(defaultScreen(user.role as Role));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+    }
     setCurrentUser(null);
     setScreen("");
   };
@@ -41,6 +106,32 @@ export default function App() {
   const handleUpdateProducts = (newProducts: Product[]) => {
     setProducts(newProducts);
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--text-muted)" }}>
+        <div className="flex items-center gap-2 text-sm">
+          <svg className="animate-spin h-5 w-5 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Verificando sesión...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSettingPassword) {
+    return (
+      <SetPassword
+        onSuccess={handlePasswordSet}
+        onCancel={() => {
+          window.history.replaceState(null, "", window.location.pathname);
+          setIsSettingPassword(false);
+        }}
+      />
+    );
+  }
 
   if (!currentUser || currentUser.role === "planner") {
     return <Login onLogin={handleLogin} users={users} />;

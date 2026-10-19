@@ -56,9 +56,14 @@ function Sidebar({
               <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
             </svg>
           </div>
-          <span className="text-white font-semibold text-sm tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            SupplyCore
-          </span>
+          <div>
+            <span className="text-white font-semibold text-sm tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Opti-Way
+            </span>
+            <span className="text-white/40 text-[10px] uppercase tracking-wider block">
+              SupplyCore
+            </span>
+          </div>
         </div>
       </div>
 
