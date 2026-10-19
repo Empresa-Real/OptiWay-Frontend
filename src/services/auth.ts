@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import type { User, Role } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export interface BackendUsuario {
   id: number;
