@@ -23,10 +23,15 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
   - *Vista:* [`src/pages/admin/UsersPanel.tsx`](./src/pages/admin/UsersPanel.tsx) (Tabla de usuarios conectada al servidor con botón Actualizar)
 - [x] **`POST /api/usuarios`**
   - *Función frontend:* `createUsuario({ nombre, email, role })` en [`src/services/usuarios.ts`](./src/services/usuarios.ts)
-  - *Vista:* Modal de crear usuario en [`src/pages/admin/UsersPanel.tsx`](./src/pages/admin/UsersPanel.tsx)
-- [ ] `GET /api/usuarios/{id}`
-- [ ] `PATCH /api/usuarios/{id}/rol`
-- [ ] `DELETE /api/usuarios/{id}`
+  - *Vista:* Modal de crear usuario en [`src/pages/admin/UsersPanel.tsx`](./src/pages/admin/UsersPanel.tsx) (Captura y visualiza el error JSON del servidor en caso de duplicidad o validación)
+- [x] **`GET /api/usuarios/{id}`**
+  - *Función frontend:* `getUsuarioById(id)` en [`src/services/usuarios.ts`](./src/services/usuarios.ts)
+- [x] **`PATCH /api/usuarios/{id}/rol`**
+  - *Función frontend:* `updateRolUsuario(id, role)` en [`src/services/usuarios.ts`](./src/services/usuarios.ts)
+  - *Vista:* Modal de cambio de rol en [`src/pages/admin/UsersPanel.tsx`](./src/pages/admin/UsersPanel.tsx) con control de errores JSON
+- [x] **`DELETE /api/usuarios/{id}`**
+  - *Función frontend:* `deleteUsuario(id)` en [`src/services/usuarios.ts`](./src/services/usuarios.ts)
+  - *Vista:* Confirmación de eliminación de usuario en [`src/pages/admin/UsersPanel.tsx`](./src/pages/admin/UsersPanel.tsx) con control de errores JSON
 
 ---
 

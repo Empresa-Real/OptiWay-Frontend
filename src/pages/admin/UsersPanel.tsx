@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import type { User, Store, DC } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
-import { getUsuarios, createUsuario } from "../../services/usuarios";
+import {
+  getUsuarios,
+  createUsuario,
+  updateRolUsuario,
+  deleteUsuario,
+  ApiError,
+} from "../../services/usuarios";
+
+interface ErrorDetails {
+  message: string;
+  data?: Record<string, any> | null;
+}
 
 export default function UsersPanel({
   stores,
@@ -17,17 +28,27 @@ export default function UsersPanel({
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
+
+  const [createError, setCreateError] = useState<ErrorDetails | null>(null);
+  const [deleteError, setDeleteError] = useState<ErrorDetails | null>(null);
+  const [roleError, setRoleError] = useState<ErrorDetails | null>(null);
+  const [generalError, setGeneralError] = useState<ErrorDetails | null>(null);
+
   const [showCreate, setShowCreate] = useState(false);
   const [showAssign, setShowAssign] = useState<User | null>(null);
-  const [showDeactivate, setShowDeactivate] = useState<User | null>(null);
+  const [showDelete, setShowDelete] = useState<User | null>(null);
+  const [showEditRole, setShowEditRole] = useState<User | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState({ name: "", email: "", role: "store" as User["role"] });
   const [assignForm, setAssignForm] = useState({ locationId: "" });
+  const [roleForm, setRoleForm] = useState<User["role"]>("store");
 
   const loadUsers = async () => {
     setLoading(true);
+    setGeneralError(null);
     try {
       const data = await getUsuarios();
       if (data && data.length > 0) {
@@ -35,8 +56,11 @@ export default function UsersPanel({
         onUpdateUsers(data);
       }
     } catch (err: any) {
-      console.warn("Aviso al consultar /api/usuarios:", err?.message || err);
-      // Mantiene los datos en memoria si la red falla
+      console.error("Error al consultar /api/usuarios:", err?.data || err);
+      setGeneralError({
+        message: err?.message || "No se pudieron consultar los usuarios desde el backend.",
+        data: err?.data || null,
+      });
     } finally {
       setLoading(false);
     }
@@ -68,7 +92,7 @@ export default function UsersPanel({
     if (!form.name.trim() || !form.email.trim()) return;
 
     setSubmitting(true);
-    setError("");
+    setCreateError(null);
 
     try {
       const created = await createUsuario({
@@ -85,7 +109,11 @@ export default function UsersPanel({
       setSuccessMessage("Usuario creado e invitado correctamente.");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err?.message || "No se pudo registrar el usuario en el backend.");
+      console.error("Error al crear usuario (JSON devuelto por el servidor):", err?.data || err);
+      setCreateError({
+        message: err?.message || "No se pudo registrar el usuario en el backend.",
+        data: err?.data || (err instanceof ApiError ? err.data : null),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -100,16 +128,80 @@ export default function UsersPanel({
     setShowAssign(null);
   };
 
-  const handleDeactivateConfirm = () => {
-    if (!showDeactivate) return;
-    const newUsers = users.map((u) =>
-      u.id === showDeactivate.id ? { ...u, status: "inactive" as const } : u
+  const handleDeleteConfirm = async () => {
+    if (!showDelete) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteUsuario(showDelete.id);
+      const newUsers = users.filter((u) => u.id !== showDelete.id);
+      setUsers(newUsers);
+      onUpdateUsers(newUsers);
+      setShowDelete(null);
+      setSuccessMessage("Usuario eliminado correctamente.");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Error al eliminar usuario (JSON devuelto por el servidor):", err?.data || err);
+      setDeleteError({
+        message: err?.message || "No se pudo eliminar el usuario.",
+        data: err?.data || null,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleUpdateRoleConfirm = async () => {
+    if (!showEditRole) return;
+
+    setUpdatingRole(true);
+    setRoleError(null);
+
+    try {
+      await updateRolUsuario(showEditRole.id, roleForm);
+      const newUsers = users.map((u) =>
+        u.id === showEditRole.id ? { ...u, role: roleForm } : u
+      );
+      setUsers(newUsers);
+      onUpdateUsers(newUsers);
+      setShowEditRole(null);
+      setSuccessMessage("Rol de usuario actualizado correctamente.");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Error al actualizar rol (JSON devuelto por el servidor):", err?.data || err);
+      setRoleError({
+        message: err?.message || "No se pudo actualizar el rol.",
+        data: err?.data || null,
+      });
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  const renderErrorBox = (err: ErrorDetails | null) => {
+    if (!err) return null;
+    return (
+      <div className="space-y-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md p-3 border border-red-200">
+        <div className="flex items-start gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+          <span className="font-medium">{err.message}</span>
+        </div>
+        {err.data && (
+          <div className="mt-2 pt-2 border-t border-red-200/60">
+            <span className="text-xs font-semibold uppercase tracking-wider text-red-800 block mb-1">
+              Respuesta del servidor (JSON):
+            </span>
+            <pre className="bg-white/90 p-2.5 rounded text-xs overflow-x-auto text-slate-800 font-mono border border-red-200 leading-snug">
+              {JSON.stringify(err.data, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
     );
-    setUsers(newUsers);
-    onUpdateUsers(newUsers);
-    setShowDeactivate(null);
-    setSuccessMessage("Usuario desactivado");
-    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   const rows = users.map((u) => [
@@ -120,7 +212,18 @@ export default function UsersPanel({
     <Badge variant={u.status === "active" ? "success" : "neutral"}>
       {u.status === "active" ? "Activo" : "Inactivo"}
     </Badge>,
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <Btn
+        size="sm"
+        variant="ghost"
+        onClick={() => {
+          setShowEditRole(u);
+          setRoleForm(u.role);
+          setRoleError(null);
+        }}
+      >
+        Cambiar rol
+      </Btn>
       <Btn
         size="sm"
         variant="ghost"
@@ -129,20 +232,19 @@ export default function UsersPanel({
           setAssignForm({ locationId: String(u.locationId ?? "") });
         }}
       >
-        Asignar ubicación
+        Ubicación
       </Btn>
-      {u.status === "active" ? (
-        <Btn
-          size="sm"
-          variant="ghost"
-          onClick={() => setShowDeactivate(u)}
-          className="text-[var(--danger)] hover:bg-[var(--danger-light)]"
-        >
-          Desactivar
-        </Btn>
-      ) : (
-        <span className="text-xs text-[var(--text-muted)] px-3 py-1.5">Inactivo</span>
-      )}
+      <Btn
+        size="sm"
+        variant="ghost"
+        onClick={() => {
+          setShowDelete(u);
+          setDeleteError(null);
+        }}
+        className="text-[var(--danger)] hover:bg-[var(--danger-light)]"
+      >
+        Eliminar
+      </Btn>
     </div>,
   ]);
 
@@ -156,6 +258,13 @@ export default function UsersPanel({
           {successMessage}
         </div>
       )}
+
+      {generalError && (
+        <div className="mb-4">
+          {renderErrorBox(generalError)}
+        </div>
+      )}
+
       <SectionHeader
         title="Usuarios"
         subtitle="Gestión de cuentas y roles del sistema"
@@ -164,7 +273,7 @@ export default function UsersPanel({
             <Btn variant="secondary" size="md" onClick={loadUsers} disabled={loading}>
               {loading ? "Actualizando..." : "Actualizar"}
             </Btn>
-            <Btn size="md" onClick={() => { setShowCreate(true); setError(""); }}>
+            <Btn size="md" onClick={() => { setShowCreate(true); setCreateError(null); }}>
               + Crear usuario
             </Btn>
           </div>
@@ -180,6 +289,7 @@ export default function UsersPanel({
         )}
       </Card>
 
+      {/* Modal Crear Usuario */}
       {showCreate && (
         <Modal title="Crear usuario" onClose={() => !submitting && setShowCreate(false)}>
           <div className="space-y-4">
@@ -218,14 +328,7 @@ export default function UsersPanel({
               </Select>
             </div>
 
-            {error && (
-              <div className="flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-                </svg>
-                <span>{error}</span>
-              </div>
-            )}
+            {renderErrorBox(createError)}
 
             <div className="flex gap-2 pt-1">
               <Btn onClick={handleCreate} disabled={submitting}>
@@ -239,6 +342,39 @@ export default function UsersPanel({
         </Modal>
       )}
 
+      {/* Modal Cambiar Rol */}
+      {showEditRole && (
+        <Modal title={`Cambiar rol — ${showEditRole.name}`} onClose={() => !updatingRole && setShowEditRole(null)}>
+          <div className="space-y-4">
+            <div>
+              <Label>Nuevo rol en el sistema</Label>
+              <Select
+                value={roleForm}
+                onChange={(e) => setRoleForm(e.target.value as User["role"])}
+                disabled={updatingRole}
+              >
+                <option value="admin">Administrador</option>
+                <option value="store">Encargado de tienda</option>
+                <option value="dc">Encargado de CD</option>
+                <option value="planner">Planificador</option>
+              </Select>
+            </div>
+
+            {renderErrorBox(roleError)}
+
+            <div className="flex gap-2 pt-1">
+              <Btn onClick={handleUpdateRoleConfirm} disabled={updatingRole}>
+                {updatingRole ? "Actualizando..." : "Guardar rol"}
+              </Btn>
+              <Btn variant="secondary" onClick={() => setShowEditRole(null)} disabled={updatingRole}>
+                Cancelar
+              </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Asignar Ubicación */}
       {showAssign && (
         <Modal title={`Asignar ubicación — ${showAssign.name}`} onClose={() => setShowAssign(null)}>
           <div className="space-y-4">
@@ -272,17 +408,27 @@ export default function UsersPanel({
         </Modal>
       )}
 
-      {showDeactivate && (
-        <Modal title="Desactivar usuario" onClose={() => setShowDeactivate(null)}>
+      {/* Modal Eliminar Usuario */}
+      {showDelete && (
+        <Modal title="Eliminar usuario" onClose={() => !deleting && setShowDelete(null)}>
           <div className="space-y-4">
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-              ¿Estás seguro de desactivar a <strong className="text-[var(--text)]">{showDeactivate.name}</strong>? El usuario perderá acceso al sistema inmediatamente.
+              ¿Estás seguro de eliminar permanentemente a <strong className="text-[var(--text)]">{showDelete.name}</strong> ({showDelete.email})?
+              Esta acción llamará a <code className="text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-800">DELETE /api/usuarios/{showDelete.id}</code> en el backend.
             </p>
+
+            {renderErrorBox(deleteError)}
+
             <div className="flex gap-2 pt-1">
-              <Btn variant="primary" onClick={handleDeactivateConfirm} className="bg-[var(--danger)] hover:bg-red-700">
-                Sí, desactivar
+              <Btn
+                variant="primary"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="bg-[var(--danger)] hover:bg-red-700"
+              >
+                {deleting ? "Eliminando..." : "Sí, eliminar"}
               </Btn>
-              <Btn variant="secondary" onClick={() => setShowDeactivate(null)}>
+              <Btn variant="secondary" onClick={() => setShowDelete(null)} disabled={deleting}>
                 Cancelar
               </Btn>
             </div>
