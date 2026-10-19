@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import type { User, Role } from "../types";
 import { mapBackendRoleToFrontend, type BackendUsuario } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 async function getAuthToken(): Promise<string> {
   const { data } = await supabase.auth.getSession();
