@@ -3,6 +3,7 @@ import type { Store } from "../../types";
 import { seedStores } from "../../data/seed";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getTiendas, createTienda } from "../../services/tiendas";
+import { cleanErrorMessage } from "../../services/usuarios";
 
 export default function StoresPanel() {
   const [stores, setStores] = useState<Store[]>(seedStores);
@@ -43,7 +44,8 @@ export default function StoresPanel() {
       setForm({ name: "", address: "", city: "" });
       setShowCreate(false);
     } catch (err: any) {
-      setError(err?.message || "Error al crear la tienda en el servidor.");
+      console.error("Error al crear tienda:", err?.data || err);
+      setError(cleanErrorMessage(err?.message || "Error al crear la tienda en el servidor.", err?.status, err?.data));
     } finally {
       setSubmitting(false);
     }
