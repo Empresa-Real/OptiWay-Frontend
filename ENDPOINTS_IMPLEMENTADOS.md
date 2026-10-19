@@ -42,14 +42,20 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 - [x] **`POST /api/tiendas`**
   - *Función frontend:* `createTienda({ name, address, city })` en [`src/services/tiendas.ts`](./src/services/tiendas.ts)
   - *Vista:* Modal de crear tienda en [`src/pages/admin/StoresPanel.tsx`](./src/pages/admin/StoresPanel.tsx)
-- [ ] `PUT /api/tiendas/{id}/encargado`
+- [x] **`PUT /api/tiendas/{id}/encargado`**
+  - *Función frontend:* `asignarEncargadoTienda(id, encargadoId)` en [`src/services/tiendas.ts`](./src/services/tiendas.ts)
 
 ---
 
 ## 4. Módulo de Centros de Distribución (`centro-distribucion-controller`)
-- [ ] `GET /api/centros-distribucion`
-- [ ] `POST /api/centros-distribucion`
-- [ ] `PUT /api/centros-distribucion/{id}/encargado`
+- [x] **`GET /api/centros-distribucion`**
+  - *Función frontend:* `getCentrosDistribucion()` en [`src/services/centrosDistribucion.ts`](./src/services/centrosDistribucion.ts)
+  - *Vista:* [`src/pages/admin/DCsPanel.tsx`](./src/pages/admin/DCsPanel.tsx)
+- [x] **`POST /api/centros-distribucion`**
+  - *Función frontend:* `createCentroDistribucion({ name, address, capacity, coverage })` en [`src/services/centrosDistribucion.ts`](./src/services/centrosDistribucion.ts)
+  - *Vista:* Modal de crear CD en [`src/pages/admin/DCsPanel.tsx`](./src/pages/admin/DCsPanel.tsx)
+- [x] **`PUT /api/centros-distribucion/{id}/encargado`**
+  - *Función frontend:* `updateEncargadoCentroDistribucion(id, encargadoId)` en [`src/services/centrosDistribucion.ts`](./src/services/centrosDistribucion.ts)
 
 ---
 
