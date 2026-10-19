@@ -21,34 +21,62 @@ export class ApiError extends Error {
 }
 
 /**
- * Procesa la respuesta de error del backend extrayendo el JSON del cuerpo si existe.
+ * Procesa la respuesta de error del backend extrayendo un mensaje claro y amigable
+ * para el usuario, guardando el JSON únicamente para depuración técnica en consola.
  */
 async function parseErrorResponse(response: Response, defaultMessage: string): Promise<ApiError> {
   let errorData: Record<string, any> | null = null;
-  let message = `${defaultMessage} (${response.status})`;
+  let specificMessage = "";
 
   try {
     const text = await response.text();
     try {
       errorData = JSON.parse(text);
       if (errorData && typeof errorData === "object") {
-        if (typeof errorData.error === "string") {
-          message = errorData.error;
-        } else if (typeof errorData.message === "string") {
-          message = errorData.message;
+        if (typeof errorData.error === "string" && errorData.error.trim()) {
+          specificMessage = errorData.error.trim();
+        } else if (typeof errorData.message === "string" && errorData.message.trim()) {
+          specificMessage = errorData.message.trim();
         }
       }
     } catch {
-      if (text) {
-        message = text;
-        errorData = { error: text };
+      if (text && !text.trim().startsWith("{") && !text.trim().startsWith("<")) {
+        specificMessage = text.trim();
       }
     }
   } catch {
-    errorData = { error: response.statusText || "Error de conexión con el servidor" };
+    // Si no se pudo leer el cuerpo
   }
 
-  return new ApiError(response.status, message, errorData);
+  // Si el backend no devolvió un mensaje específico o devolvió un mensaje genérico,
+  // mapeamos el código de estado HTTP a un mensaje claro y comprensible:
+  if (!specificMessage || specificMessage.startsWith("{")) {
+    switch (response.status) {
+      case 400:
+        specificMessage = "Los datos ingresados son inválidos. Por favor verifica los campos.";
+        break;
+      case 401:
+        specificMessage = "Tu sesión ha expirado o no es válida. Inicia sesión nuevamente.";
+        break;
+      case 403:
+        specificMessage = "No tienes permisos de administrador para realizar esta operación.";
+        break;
+      case 404:
+        specificMessage = "El usuario solicitado no fue encontrado en el sistema.";
+        break;
+      case 409:
+        specificMessage = "El correo electrónico ya se encuentra registrado en el sistema.";
+        break;
+      case 502:
+        specificMessage = "No fue posible conectar con el servicio de autenticación. Intenta nuevamente.";
+        break;
+      default:
+        specificMessage = defaultMessage;
+        break;
+    }
+  }
+
+  return new ApiError(response.status, specificMessage, errorData);
 }
 
 async function getAuthToken(): Promise<string> {

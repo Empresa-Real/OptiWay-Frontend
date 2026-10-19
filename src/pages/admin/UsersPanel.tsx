@@ -9,10 +9,6 @@ import {
   ApiError,
 } from "../../services/usuarios";
 
-interface ErrorDetails {
-  message: string;
-  data?: Record<string, any> | null;
-}
 
 export default function UsersPanel({
   stores,
@@ -31,10 +27,10 @@ export default function UsersPanel({
   const [deleting, setDeleting] = useState(false);
   const [updatingRole, setUpdatingRole] = useState(false);
 
-  const [createError, setCreateError] = useState<ErrorDetails | null>(null);
-  const [deleteError, setDeleteError] = useState<ErrorDetails | null>(null);
-  const [roleError, setRoleError] = useState<ErrorDetails | null>(null);
-  const [generalError, setGeneralError] = useState<ErrorDetails | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showAssign, setShowAssign] = useState<User | null>(null);
@@ -57,10 +53,7 @@ export default function UsersPanel({
       }
     } catch (err: any) {
       console.error("Error al consultar /api/usuarios:", err?.data || err);
-      setGeneralError({
-        message: err?.message || "No se pudieron consultar los usuarios desde el backend.",
-        data: err?.data || null,
-      });
+      setGeneralError(err?.message || "No se pudieron consultar los usuarios desde el backend.");
     } finally {
       setLoading(false);
     }
@@ -109,11 +102,8 @@ export default function UsersPanel({
       setSuccessMessage("Usuario creado e invitado correctamente.");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      console.error("Error al crear usuario (JSON devuelto por el servidor):", err?.data || err);
-      setCreateError({
-        message: err?.message || "No se pudo registrar el usuario en el backend.",
-        data: err?.data || (err instanceof ApiError ? err.data : null),
-      });
+      console.error("Error al crear usuario:", err?.data || err);
+      setCreateError(err?.message || "No se pudo registrar el usuario en el backend.");
     } finally {
       setSubmitting(false);
     }
@@ -143,11 +133,8 @@ export default function UsersPanel({
       setSuccessMessage("Usuario eliminado correctamente.");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      console.error("Error al eliminar usuario (JSON devuelto por el servidor):", err?.data || err);
-      setDeleteError({
-        message: err?.message || "No se pudo eliminar el usuario.",
-        data: err?.data || null,
-      });
+      console.error("Error al eliminar usuario:", err?.data || err);
+      setDeleteError(err?.message || "No se pudo eliminar el usuario.");
     } finally {
       setDeleting(false);
     }
@@ -170,36 +157,21 @@ export default function UsersPanel({
       setSuccessMessage("Rol de usuario actualizado correctamente.");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      console.error("Error al actualizar rol (JSON devuelto por el servidor):", err?.data || err);
-      setRoleError({
-        message: err?.message || "No se pudo actualizar el rol.",
-        data: err?.data || null,
-      });
+      console.error("Error al actualizar rol:", err?.data || err);
+      setRoleError(err?.message || "No se pudo actualizar el rol.");
     } finally {
       setUpdatingRole(false);
     }
   };
 
-  const renderErrorBox = (err: ErrorDetails | null) => {
-    if (!err) return null;
+  const renderErrorBox = (message: string | null) => {
+    if (!message) return null;
     return (
-      <div className="space-y-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md p-3 border border-red-200">
-        <div className="flex items-start gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-          </svg>
-          <span className="font-medium">{err.message}</span>
-        </div>
-        {err.data && (
-          <div className="mt-2 pt-2 border-t border-red-200/60">
-            <span className="text-xs font-semibold uppercase tracking-wider text-red-800 block mb-1">
-              Respuesta del servidor (JSON):
-            </span>
-            <pre className="bg-white/90 p-2.5 rounded text-xs overflow-x-auto text-slate-800 font-mono border border-red-200 leading-snug">
-              {JSON.stringify(err.data, null, 2)}
-            </pre>
-          </div>
-        )}
+      <div className="flex items-start gap-2.5 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3.5 py-2.5 border border-red-200">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+        </svg>
+        <span className="font-medium leading-relaxed">{message}</span>
       </div>
     );
   };
