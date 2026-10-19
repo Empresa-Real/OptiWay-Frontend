@@ -1,33 +1,40 @@
 import { useState } from "react";
 import type { User } from "../types";
-import { credentials } from "../data/seed";
 import { Input, Label, Btn } from "../components/ui";
+import { login } from "../services/auth";
 
 export default function Login({
   onLogin,
-  users,
+  users = [],
 }: {
   onLogin: (user: User) => void;
-  users: User[];
+  users?: User[];
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cred = credentials[email.trim().toLowerCase()];
-    if (!cred || cred.password !== password) {
-      setError("Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.");
-      return;
-    }
-    const user = users.find((u) => u.id === cred.userId);
-    if (user) {
-      if (user.status === "inactive") {
-        setError("Tu cuenta está desactivada. Contacta al administrador.");
-        return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await login(email, password);
+      if (result.success && result.user) {
+        if (result.user.role === "planner") {
+          setError("El rol Planificador no tiene pantalla asignada en el frontend por el momento.");
+          return;
+        }
+        onLogin(result.user);
+      } else {
+        setError(result.error || "No se pudo iniciar sesión. Verifica tus credenciales.");
       }
-      onLogin(user);
+    } catch (err: any) {
+      setError(err?.message || "Error al conectar con el servicio de autenticación.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,7 +49,10 @@ export default function Login({
                 <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
               </svg>
             </div>
-            <span className="text-white font-semibold text-base tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>SupplyCore</span>
+            <div>
+              <span className="text-white font-semibold text-base tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>Opti-Way</span>
+              <span className="text-white/40 text-[11px] uppercase tracking-wider block">SupplyCore</span>
+            </div>
           </div>
           <h2 className="text-white text-2xl font-semibold leading-snug mb-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Sistema de gestión de cadena de suministro
@@ -52,8 +62,8 @@ export default function Login({
           </p>
         </div>
         <div className="border-t border-white/10 pt-6">
-          <p className="text-white/30 text-xs">Sprint 1 · Versión 1.0</p>
-          <p className="text-white/20 text-xs mt-0.5">Proyecto académico</p>
+          <p className="text-white/40 text-xs font-medium">Opti-Way · Versión 1.0</p>
+          <p className="text-white/25 text-xs mt-0.5">SupplyCore Logistics Platform</p>
         </div>
       </div>
 
@@ -73,6 +83,7 @@ export default function Login({
                 placeholder="correo@empresa.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                autoComplete="email"
                 required
               />
             </div>
@@ -83,24 +94,50 @@ export default function Login({
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                autoComplete="current-password"
                 required
               />
             </div>
             {error && (
               <div className="flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                </svg>
                 {error}
               </div>
             )}
-            <Btn type="submit" size="md">Iniciar sesión</Btn>
+            <Btn type="submit" size="md" disabled={loading}>
+              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+            </Btn>
           </form>
 
           <div className="mt-8 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             <p className="text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wide">Cuentas de prueba</p>
             <div className="space-y-1.5 text-xs text-[var(--text-muted)]">
-              <div className="flex justify-between"><span>ana@empresa.com</span><span className="font-mono">admin123</span></div>
-              <div className="flex justify-between"><span>carlos@empresa.com</span><span className="font-mono">tienda123</span></div>
-              <div className="flex justify-between"><span>roberto@empresa.com</span><span className="font-mono">cd123</span></div>
+              <div
+                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
+                onClick={() => { setEmail("ana@empresa.com"); setPassword("admin123"); setError(""); }}
+                title="Haz clic para autocompletar"
+              >
+                <span>ana@empresa.com</span>
+                <span className="font-mono">admin123</span>
+              </div>
+              <div
+                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
+                onClick={() => { setEmail("carlos@empresa.com"); setPassword("tienda123"); setError(""); }}
+                title="Haz clic para autocompletar"
+              >
+                <span>carlos@empresa.com</span>
+                <span className="font-mono">tienda123</span>
+              </div>
+              <div
+                className="flex justify-between p-1 rounded hover:bg-gray-100 cursor-pointer transition-colors"
+                onClick={() => { setEmail("roberto@empresa.com"); setPassword("cd123"); setError(""); }}
+                title="Haz clic para autocompletar"
+              >
+                <span>roberto@empresa.com</span>
+                <span className="font-mono">cd123</span>
+              </div>
             </div>
           </div>
         </div>

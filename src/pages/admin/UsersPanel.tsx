@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { User, Store, DC } from "../../types";
-import { seedUsers, seedStores, seedDCs } from "../../data/seed";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { getUsuarios, createUsuario } from "../../services/usuarios";
 
 export default function UsersPanel({
   stores,
@@ -15,6 +15,9 @@ export default function UsersPanel({
   onUpdateUsers: (users: User[]) => void;
 }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [showAssign, setShowAssign] = useState<User | null>(null);
   const [showDeactivate, setShowDeactivate] = useState<User | null>(null);
@@ -22,6 +25,26 @@ export default function UsersPanel({
 
   const [form, setForm] = useState({ name: "", email: "", role: "store" as User["role"] });
   const [assignForm, setAssignForm] = useState({ locationId: "" });
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await getUsuarios();
+      if (data && data.length > 0) {
+        setUsers(data);
+        onUpdateUsers(data);
+      }
+    } catch (err: any) {
+      console.warn("Aviso al consultar /api/usuarios:", err?.message || err);
+      // Mantiene los datos en memoria si la red falla
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const locationName = (u: User) => {
     if (!u.locationId) return "—";
@@ -38,19 +61,34 @@ export default function UsersPanel({
       dc: { v: "warning", l: "Enc. CD" },
       planner: { v: "neutral", l: "Planificador" },
     };
-    return <Badge variant={map[r].v}>{map[r].l}</Badge>;
+    return <Badge variant={map[r]?.v || "neutral"}>{map[r]?.l || r}</Badge>;
   };
 
-  const handleCreate = () => {
-    if (!form.name || !form.email) return;
-    const newUsers = [
-      ...users,
-      { id: Date.now(), name: form.name, email: form.email, role: form.role, locationId: null, status: "active" as const },
-    ];
-    setUsers(newUsers);
-    onUpdateUsers(newUsers);
-    setForm({ name: "", email: "", role: "store" });
-    setShowCreate(false);
+  const handleCreate = async () => {
+    if (!form.name.trim() || !form.email.trim()) return;
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const created = await createUsuario({
+        nombre: form.name,
+        email: form.email,
+        role: form.role,
+      });
+
+      const updated = [created, ...users];
+      setUsers(updated);
+      onUpdateUsers(updated);
+      setForm({ name: "", email: "", role: "store" });
+      setShowCreate(false);
+      setSuccessMessage("Usuario creado e invitado correctamente.");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || "No se pudo registrar el usuario en el backend.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleAssign = () => {
@@ -98,12 +136,12 @@ export default function UsersPanel({
           size="sm"
           variant="ghost"
           onClick={() => setShowDeactivate(u)}
-          className="text-[var(--danger)]"
+          className="text-[var(--danger)] hover:bg-[var(--danger-light)]"
         >
           Desactivar
         </Btn>
       ) : (
-        <span className="text-xs text-[var(--text-muted)]">Este usuario ya está inactivo</span>
+        <span className="text-xs text-[var(--text-muted)] px-3 py-1.5">Inactivo</span>
       )}
     </div>,
   ]);
@@ -111,9 +149,9 @@ export default function UsersPanel({
   return (
     <div>
       {successMessage && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M20 6 9 17l-5-5" />
+        <div className="mb-4 flex items-center gap-2 bg-[var(--success-light)] text-[var(--success)] text-sm px-4 py-2.5 rounded-md">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
           </svg>
           {successMessage}
         </div>
@@ -121,14 +159,29 @@ export default function UsersPanel({
       <SectionHeader
         title="Usuarios"
         subtitle="Gestión de cuentas y roles del sistema"
-        action={<Btn onClick={() => setShowCreate(true)}>+ Crear usuario</Btn>}
+        action={
+          <div className="flex gap-2">
+            <Btn variant="secondary" size="md" onClick={loadUsers} disabled={loading}>
+              {loading ? "Actualizando..." : "Actualizar"}
+            </Btn>
+            <Btn size="md" onClick={() => { setShowCreate(true); setError(""); }}>
+              + Crear usuario
+            </Btn>
+          </div>
+        }
       />
       <Card>
-        <Table headers={["Nombre", "Correo", "Rol", "Ubicación", "Estado", "Acciones"]} rows={rows} />
+        {loading && users.length === 0 ? (
+          <div className="py-12 text-center text-sm text-[var(--text-muted)]">
+            Cargando usuarios desde el servidor...
+          </div>
+        ) : (
+          <Table headers={["Nombre", "Correo", "Rol", "Ubicación", "Estado", "Acciones"]} rows={rows} />
+        )}
       </Card>
 
       {showCreate && (
-        <Modal title="Crear usuario" onClose={() => setShowCreate(false)}>
+        <Modal title="Crear usuario" onClose={() => !submitting && setShowCreate(false)}>
           <div className="space-y-4">
             <div>
               <Label>Nombre completo</Label>
@@ -136,6 +189,8 @@ export default function UsersPanel({
                 placeholder="Ej. Laura Martínez"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                disabled={submitting}
+                required
               />
             </div>
             <div>
@@ -145,6 +200,8 @@ export default function UsersPanel({
                 placeholder="correo@empresa.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                disabled={submitting}
+                required
               />
             </div>
             <div>
@@ -152,6 +209,7 @@ export default function UsersPanel({
               <Select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value as User["role"] })}
+                disabled={submitting}
               >
                 <option value="admin">Administrador</option>
                 <option value="store">Encargado de tienda</option>
@@ -159,9 +217,21 @@ export default function UsersPanel({
                 <option value="planner">Planificador</option>
               </Select>
             </div>
+
+            {error && (
+              <div className="flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
-              <Btn onClick={handleCreate}>Crear usuario</Btn>
-              <Btn variant="secondary" onClick={() => setShowCreate(false)}>
+              <Btn onClick={handleCreate} disabled={submitting}>
+                {submitting ? "Guardando..." : "Crear usuario"}
+              </Btn>
+              <Btn variant="secondary" onClick={() => setShowCreate(false)} disabled={submitting}>
                 Cancelar
               </Btn>
             </div>
@@ -179,14 +249,14 @@ export default function UsersPanel({
                 <optgroup label="Tiendas">
                   {stores.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name}
+                      {s.name} · {s.city}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="Centros de distribución">
                   {dcs.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.name}
+                      {d.name} · {d.address}
                     </option>
                   ))}
                 </optgroup>
@@ -194,25 +264,23 @@ export default function UsersPanel({
             </div>
             <div className="flex gap-2 pt-1">
               <Btn onClick={handleAssign}>Guardar asignación</Btn>
-              <Btn variant="secondary" onClick={() => setShowAssign(null)}>Cancelar</Btn>
+              <Btn variant="secondary" onClick={() => setShowAssign(null)}>
+                Cancelar
+              </Btn>
             </div>
           </div>
         </Modal>
       )}
 
       {showDeactivate && (
-        <Modal
-          title="Confirmar desactivación"
-          onClose={() => setShowDeactivate(null)}
-        >
+        <Modal title="Desactivar usuario" onClose={() => setShowDeactivate(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-[var(--text)]">
-              {showDeactivate.name} dejará de poder iniciar sesión desde este
-              momento. Su historial de acciones se conservará como registro.
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+              ¿Estás seguro de desactivar a <strong className="text-[var(--text)]">{showDeactivate.name}</strong>? El usuario perderá acceso al sistema inmediatamente.
             </p>
-            <div className="flex gap-2 pt-1 justify-end">
-              <Btn onClick={handleDeactivateConfirm} variant="primary" className="bg-[var(--danger)] border-[var(--danger)]">
-                Desactivar
+            <div className="flex gap-2 pt-1">
+              <Btn variant="primary" onClick={handleDeactivateConfirm} className="bg-[var(--danger)] hover:bg-red-700">
+                Sí, desactivar
               </Btn>
               <Btn variant="secondary" onClick={() => setShowDeactivate(null)}>
                 Cancelar

@@ -1,5 +1,6 @@
 {
-  "description": "This web application streamlines project management by enabling teams to collaborate, track progress, and manage tasks efficiently, enhancing productivity.",
+  "title": "Opti-Way | SupplyCore",
+  "description": "Sistema de gestión de cadena de suministro Opti-Way por SupplyCore.",
   "robots": {
     "index": false
   },
