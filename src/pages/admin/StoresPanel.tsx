@@ -1,35 +1,37 @@
 import { useState, useEffect } from "react";
 import type { Store } from "../../types";
-import { seedStores } from "../../data/seed";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getTiendas, createTienda } from "../../services/tiendas";
 import { cleanErrorMessage } from "../../services/usuarios";
 
 export default function StoresPanel() {
-  const [stores, setStores] = useState<Store[]>(seedStores);
-  const [loading, setLoading] = useState(false);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", city: "" });
 
-  const loadStores = async () => {
-    setLoading(true);
+  const loadStores = async (isInitial = false) => {
+    if (!isInitial) setRefreshing(true);
     try {
       const data = await getTiendas();
-      if (data && data.length > 0) {
-        setStores(data);
-      }
+      setStores(data || []);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/tiendas:", err?.message || err);
-      // Mantiene los datos en memoria si la red falla
+      // No usar datos quemados
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setInitialLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadStores();
+    loadStores(true);
   }, []);
 
   const handleCreate = async () => {
@@ -51,6 +53,10 @@ export default function StoresPanel() {
     }
   };
 
+  if (initialLoading) {
+    return null;
+  }
+
   const rows = stores.map((s) => [
     <span className="font-medium">{s.name}</span>,
     s.address || "—",
@@ -67,8 +73,8 @@ export default function StoresPanel() {
         subtitle="Sucursales registradas en la red"
         action={
           <div className="flex gap-2">
-            <Btn variant="secondary" size="md" onClick={loadStores} disabled={loading}>
-              {loading ? "Actualizando..." : "Actualizar"}
+            <Btn variant="secondary" size="md" onClick={() => loadStores(false)} disabled={refreshing}>
+              {refreshing ? "Actualizando..." : "Actualizar"}
             </Btn>
             <Btn size="md" onClick={() => { setShowCreate(true); setError(""); }}>
               + Crear tienda
@@ -78,9 +84,9 @@ export default function StoresPanel() {
       />
 
       <Card>
-        {loading && stores.length === 0 ? (
+        {stores.length === 0 ? (
           <div className="py-12 text-center text-sm text-[var(--text-muted)]">
-            Cargando tiendas desde el servidor...
+            No hay tiendas registradas.
           </div>
         ) : (
           <Table headers={["Nombre", "Dirección", "Ciudad", "Estado"]} rows={rows} />

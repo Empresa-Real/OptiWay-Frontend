@@ -1,26 +1,53 @@
 import type { Role } from "../types";
 
-const NAV_ADMIN = [
-  { id: "users", label: "Usuarios", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" },
-  { id: "products", label: "Productos", icon: "M4 7h16M4 12h16M4 17h16" },
-  { id: "stores", label: "Tiendas", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
-  { id: "dcs", label: "Centros de distribución", icon: "M21 10H3M21 6H3M21 14H3M21 18H3" },
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  integrated: boolean;
+}
+
+const NAV_ADMIN: NavItem[] = [
+  { id: "users", label: "Usuarios", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", integrated: true },
+  { id: "products", label: "Productos", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
+  { id: "stores", label: "Tiendas", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", integrated: true },
+  { id: "dcs", label: "Centros de distribución", icon: "M21 10H3M21 6H3M21 14H3M21 18H3", integrated: true },
 ];
 
-const NAV_STORE = [
-  { id: "sale", label: "Registrar venta", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" },
-  { id: "inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16" },
+const NAV_STORE: NavItem[] = [
+  { id: "sale", label: "Registrar venta", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z", integrated: false },
+  { id: "inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
 ];
 
-const NAV_DC = [
-  { id: "dc-inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16" },
-  { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7" },
+const NAV_DC: NavItem[] = [
+  { id: "dc-inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
+  { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7", integrated: false },
 ];
 
 function NavIcon({ d }: { d: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={d} />
+    </svg>
+  );
+}
+
+function PadlockIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="ml-auto shrink-0 opacity-50"
+      title="Módulo no integrado aún"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
@@ -81,6 +108,7 @@ function Sidebar({
           >
             <NavIcon d={item.icon} />
             <span className="leading-tight">{item.label}</span>
+            {!item.integrated && <PadlockIcon />}
           </button>
         ))}
       </nav>
