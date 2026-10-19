@@ -33,6 +33,7 @@ export interface DC {
   capacity: number;
   coverage: number[];
   status: "active" | "inactive";
+  encargadoId?: number | string;
 }
 
 export interface InventoryItem {
