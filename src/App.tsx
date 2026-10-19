@@ -14,6 +14,7 @@ import { getCurrentUser, logout } from "./services/auth";
 import { supabase } from "./services/supabase";
 import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
+import { getProductos } from "./services/productos";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -76,12 +77,14 @@ export default function App() {
     if (!currentUser) return;
     async function loadAuxData() {
       try {
-        const [storesData, dcsData] = await Promise.all([
+        const [storesData, dcsData, productsData] = await Promise.all([
           getTiendas().catch(() => []),
           getCentrosDistribucion().catch(() => []),
+          getProductos().catch(() => []),
         ]);
         setStores(storesData || []);
         setDCs(dcsData || []);
+        setProducts(productsData || []);
       } catch (err) {
         console.warn("Aviso al cargar sucursales:", err);
       }
