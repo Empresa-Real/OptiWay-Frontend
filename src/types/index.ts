@@ -40,6 +40,9 @@ export interface InventoryItem {
   productId: string;
   quantity: number;
   minStock: number;
+  nombreProducto?: string;
+  categoriaProducto?: string;
+  stockBajo?: boolean;
 }
 
 export interface SaleRecord {
