@@ -74,5 +74,7 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 ---
 
 ## 7. Operaciones y Movimientos (`ingreso-mercancia-controller` & `venta-controller`)
-- [ ] `POST /api/ingresos-mercancia` (Recepción de mercancía en CD)
+- [x] `POST /api/ingresos-mercancia` (Recepción de mercancía en CD)
+  - *Función frontend:* `registrarIngreso({ productoId, quantity, origin })` en [`src/services/ingresoMercancia.ts`](./src/services/ingresoMercancia.ts)
+  - *Vista:* [`src/pages/dc/RegisterReceipt.tsx`](./src/pages/dc/RegisterReceipt.tsx) (formulario conectado al backend con control de errores)
 - [ ] `POST /api/ventas` (Registro de venta en tienda)
