@@ -15,7 +15,7 @@ const NAV_ADMIN: NavItem[] = [
 ];
 
 const NAV_STORE: NavItem[] = [
-  { id: "sale", label: "Registrar venta", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z", integrated: false },
+  { id: "sale", label: "Registrar venta", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z", integrated: true },
   { id: "inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
 ];
 
