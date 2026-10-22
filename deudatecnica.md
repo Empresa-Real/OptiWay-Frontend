@@ -123,13 +123,21 @@ Commit `5e3f18e`. Antes cada servicio copiaba su propio `API_BASE_URL`, `getAuth
 - `centrosDistribucion` ya no asigna `detalle` directo (se acabó el `[object Object]`).
 - `getCentrosDistribucion` propaga el error; `DCsPanel` lo muestra.
 
-### 2.2 Pendiente — congelar el contrato de error
+### 2.2 Resuelto — contrato de error congelado
 
-`apiFetch` **tolera** varios formatos (`message`, `error`, `detalle`, texto plano), pero eso
-es mitigación, no contrato. Hoy conviven respuestas de Spring, de Supabase y de validación.
+`BackendErrorResponse` es ahora el único contrato (`src/services/http.ts`):
 
-**Objetivo:** documentar y respetar un único `ErrorResponse { status, error, message }` y
-eliminar los fallbacks. Mientras no esté congelado, `pickMessage()` seguirá adivinando.
+| Campo | Uso |
+|---|---|
+| `message` | Mensaje humano para la interfaz (prioridad 1) |
+| `error` | Detalle técnico. Se expone como `ApiError.technicalError` **solo para logs** |
+| `code` | Código del **proveedor**. No es el HTTP; ese está en `ApiError.status` |
+| `status` | Estado que algunos upstreams (GoTrue) mandan en el cuerpo; lo usa `cleanErrorMessage` para 429/422 |
+| `detalle` | Mensaje legible anidado (Supabase) |
+
+`readErrorBody` **no inventa valores**: si el backend no manda `code` o `status`, quedan
+`undefined`. Eso evita que `err.code` signifique "HTTP status" en unos casos y "código del
+proveedor" en otros.
 
 ### 2.3 Pendiente — errores silenciados en `loadAuxData`
 
@@ -196,19 +204,34 @@ desactualizado.
 
 ### 4.1 Estado
 
-- **70 tests en 8 archivos** (incluye trabajo en curso de otro agente).
+- **68 tests unitarios en 7 archivos** (`npm test`) + **3 de integración** (`npm run test:live`).
 - Con `fetch` mockeado: `auth`, `usuarios`, `tiendas`, `centrosDistribucion`, `ventas`,
   `ingresoMercancia`, `http`.
 - Los tests de `ventas` e `ingresoMercancia` se agregaron en `26ddbf3` **contra el contrato
   real** (leyendo los controladores Java), no contra lo que el frontend creía.
+- `http.test.ts` cubre el contrato de error: normalización, precedencia, texto plano, cuerpo
+  vacío, 200, 204, traducciones por `needle` y 403.
 
-### 4.2 Pendiente
+### 4.2 Integración real, aislada de la suite
 
-- Un test de integración **contra el backend real** (hay un `liveBackend.test.ts` sin
-  commitear, en curso). Los mocks no detectan un 404 ni un `LocalDateTime` mal formado.
+`liveBackend.test.ts` valida contra el backend desplegado: que `/v3/api-docs` responda, que
+existan las rutas críticas (`/api/tiendas/{id}/ventas`), y que un 401 real se convierta en
+`ApiError`. **Solo hace GET**: no crea ni modifica datos en producción.
+
+Está excluido de `npm test` (`vitest.config.ts`) porque depende de la red y de que Render esté
+despierto (cold start ~50 s > timeout). Se ejecuta aparte:
+
+```bash
+npm run test:live    # usa vitest.live.config.ts
+```
+
+### 4.3 Pendiente
+
 - Cobertura de las pantallas: hoy no hay tests de componentes (React Testing Library).
+- El test live depende del **deploy**, no del repo: si Render va atrasado, falla aunque el
+  código sea correcto. Sirve como smoke test manual, no como gate de CI.
 
-### 4.3 Lección registrada
+### 4.4 Lección registrada
 
 Los 46 tests anteriores estaban verdes **por omisión**: `ventas.ts` e `ingresoMercancia.ts`
 no tenían ninguno, y la URL equivocada estaba tanto en el código como en la documentación.
@@ -258,6 +281,7 @@ permanece sin commitear (no lo generó este trabajo). Definir si se descarta o s
 
 | Commit | Qué resolvió |
 |---|---|
+| `bd0c55d` | Contrato de error único (`BackendErrorResponse`): `code` = proveedor, `status` conservado; tests live fuera de `npm test` |
 | `b91f679` | `DCsPanel` con manejo de errores y botón Actualizar; logout limpia productos e inventario; se elimina el fetch duplicado de productos |
 | `5e3f18e` | `src/services/http.ts`: un solo `apiFetch`, token y parser de errores (−373 líneas netas) |
 | `26ddbf3` | `POST /api/tiendas/{id}/ventas` y `POST /api/centros-distribucion/{id}/ingresos`; tests de ambos servicios; `fechaHora` opcional |
@@ -268,8 +292,6 @@ permanece sin commitear (no lo generó este trabajo). Definir si se descarta o s
 
 ## 7. Prioridad sugerida
 
-1. **Test contra el backend real** (detecta 404, 400 y contratos rotos que los mocks no ven).
-2. **Congelar el contrato de error** (`ErrorResponse`).
-3. **Errores visibles en `loadAuxData`** (no confundir fallo con "sin datos").
-4. **Tipos desde OpenAPI** (cuando haya margen para tocar los 7 servicios).
-5. **Un solo lockfile**.
+1. **Errores visibles en `loadAuxData`** (no confundir fallo con "sin datos").
+2. **Tipos desde OpenAPI** (cuando haya margen para tocar los 7 servicios).
+3. **Un solo lockfile**.

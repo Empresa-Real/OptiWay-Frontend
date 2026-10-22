@@ -12,18 +12,50 @@ import { supabase } from "./supabase";
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 /**
+ * Contrato oficial y congelado de respuesta de error del backend (ErrorResponse.java).
+ *
+ * En Spring Boot / OpenAPI:
+ * - `message`: mensaje amigable en español para el cliente (fuente primaria de la UI).
+ * - `error`: descripción técnica o mensaje de error del proveedor (ej. Supabase / BD).
+ * - `code`: código de error del proveedor. NO es el HTTP; el HTTP está en `ApiError.status`.
+ * - `status`: estado que algunos upstreams (ej. GoTrue) mandan en el cuerpo. Se conserva
+ *   porque `cleanErrorMessage` lo usa para detectar 429/422 de Supabase.
+ * - `detalle`: metadatos complementarios estructurados.
+ */
+export interface BackendErrorResponse {
+  readonly message?: string;
+  readonly error?: string;
+  readonly code?: number | null;
+  readonly status?: number | null;
+  readonly detalle?: unknown;
+}
+
+/**
  * Error personalizado de la API que incluye el código HTTP,
- * el mensaje legible y el cuerpo JSON devuelto por el servidor.
+ * el mensaje legible, el código de error y el cuerpo tipado devuelto por el servidor.
  */
 export class ApiError extends Error {
-  status: number;
-  data: Record<string, any> | null;
+  readonly status: number;
+  /** Código del proveedor (no el HTTP). */
+  readonly code: number | null;
+  /**
+   * Detalle técnico (`error`) separado del mensaje humano.
+   * Es para logs y diagnóstico: nunca debe pintarse en la interfaz.
+   */
+  readonly technicalError: string | null;
+  readonly data: BackendErrorResponse | null;
 
-  constructor(status: number, message: string, data?: Record<string, any> | null) {
+  constructor(
+    status: number,
+    message: string,
+    data?: BackendErrorResponse | Record<string, any> | null
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
-    this.data = data || null;
+    this.data = (data as BackendErrorResponse) || null;
+    this.code = typeof data?.code === "number" ? data.code : null;
+    this.technicalError = typeof data?.error === "string" ? data.error : null;
   }
 }
 
@@ -203,19 +235,33 @@ function buildUrl(path: string, query?: ApiRequest["query"]): string {
 }
 
 /**
- * El backend documenta `ErrorResponse { error, message, code }`, pero en la
- * práctica también aparecen textos planos y respuestas de Supabase con
- * `detalle`. Devolvemos siempre un objeto para no romper el parseo.
+ * Parsea el cuerpo de error HTTP normalizándolo estrictamente al contrato `BackendErrorResponse`.
+ * No inventa valores: si el backend no manda `code` o `status`, quedan `undefined`
+ * (el HTTP sigue disponible en `ApiError.status`).
  */
-async function readErrorBody(response: Response): Promise<Record<string, any> | null> {
+export async function readErrorBody(response: Response): Promise<BackendErrorResponse | null> {
   try {
     const text = await response.text();
-    if (!text) return null;
+    if (!text || !text.trim()) return null;
     try {
       const parsed = JSON.parse(text);
-      return parsed && typeof parsed === "object" ? parsed : { error: String(parsed) };
+      if (parsed && typeof parsed === "object") {
+        return {
+          message: typeof parsed.message === "string" && parsed.message.trim() ? parsed.message.trim() : undefined,
+          error: typeof parsed.error === "string" && parsed.error.trim() ? parsed.error.trim() : undefined,
+          code: typeof parsed.code === "number" ? parsed.code : undefined,
+          status: typeof parsed.status === "number" ? parsed.status : undefined,
+          detalle: parsed.detalle,
+        };
+      }
+      return {
+        error: String(parsed).trim(),
+      };
     } catch {
-      return { error: text.trim() };
+      // Servidor o proxy retornó texto plano (ej. 502/504 o "Bad Request")
+      return {
+        error: text.trim(),
+      };
     }
   } catch {
     return null;
@@ -223,23 +269,35 @@ async function readErrorBody(response: Response): Promise<Record<string, any> | 
 }
 
 /**
- * `message` es el texto amigable en español que documenta el backend;
- * `error` es el detalle técnico. Preferimos el humano.
+ * Resuelve el mensaje para el usuario a partir del contrato formal:
+ * 1. Prioridad de contrato: `message` (el backend garantiza mensaje amigable en ErrorResponse.message).
+ * 2. Si falta `message`, usa `error` (detalle técnico o mensaje de proveedor como Supabase).
+ * 3. Si viene estructura `detalle` anidada, extrae su mensaje legible.
  */
-function pickMessage(body: Record<string, any> | null): string {
+export function pickContractMessage(body: BackendErrorResponse | null): string {
   if (!body) return "";
-  for (const key of ["message", "error"] as const) {
-    const value = body[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof body.message === "string" && body.message.trim()) {
+    return body.message.trim();
   }
-  if (typeof body.detalle === "string" && body.detalle.trim()) return body.detalle.trim();
-  if (typeof body.detalle?.msg === "string" && body.detalle.msg.trim()) return body.detalle.msg.trim();
+  if (typeof body.error === "string" && body.error.trim()) {
+    return body.error.trim();
+  }
+  if (typeof body.detalle === "string" && body.detalle.trim()) {
+    return body.detalle.trim();
+  }
+  const anyDetalle = body.detalle as Record<string, any> | undefined;
+  if (typeof anyDetalle?.msg === "string" && anyDetalle.msg.trim()) {
+    return anyDetalle.msg.trim();
+  }
+  if (typeof anyDetalle?.error_description === "string" && anyDetalle.error_description.trim()) {
+    return anyDetalle.error_description.trim();
+  }
   return "";
 }
 
 async function toApiError(response: Response, request: ApiRequest): Promise<ApiError> {
   const data = await readErrorBody(response);
-  let message = pickMessage(data);
+  let message = pickContractMessage(data);
 
   // El 403 del backend suele traer el mensaje crudo de Spring Security
   // ("Access Denied"), que no le dice nada al usuario.
