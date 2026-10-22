@@ -9,7 +9,7 @@ import { supabase } from "./supabase";
  * hacerlo en 6 lugares y era fácil dejar uno viejo.
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").trim();
 
 /**
  * Contrato oficial y congelado de respuesta de error del backend (ErrorResponse.java).
@@ -18,8 +18,8 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
  * - `message`: mensaje amigable en español para el cliente (fuente primaria de la UI).
  * - `error`: descripción técnica o mensaje de error del proveedor (ej. Supabase / BD).
  * - `code`: código de error del proveedor. NO es el HTTP; el HTTP está en `ApiError.status`.
- * - `status`: estado que algunos upstreams (ej. GoTrue) mandan en el cuerpo. Se conserva
- *   porque `cleanErrorMessage` lo usa para detectar 429/422 de Supabase.
+ * - `status`: estado que algunos upstreams (ej. GoTrue) mandan en el cuerpo. Se usa como
+ *   código de respaldo cuando no hay `code`.
  * - `detalle`: metadatos complementarios estructurados.
  */
 export interface BackendErrorResponse {
@@ -60,6 +60,10 @@ export class ApiError extends Error {
 }
 
 /**
+ * @deprecated Ya no se usa en el flujo de la API: `apiFetch` muestra `message`
+ * o el código, según el contrato del backend. Se conserva (con sus tests) como
+ * deuda técnica hasta decidir si se elimina. Ver `deudatecnica.md` §2.4.
+ *
  * Limpia y traduce cualquier mensaje de error técnico o que contenga JSON incrustado
  * para que el usuario SIEMPRE vea un texto humano, claro y sin fragmentos de código o llaves {}.
  */
@@ -219,8 +223,32 @@ export interface ApiRequest {
   token?: string;
 }
 
-function buildUrl(path: string, query?: ApiRequest["query"]): string {
-  const url = `${API_BASE_URL}${path}`;
+export function buildUrl(
+  path: string,
+  query?: ApiRequest["query"],
+  baseUrl: string = API_BASE_URL
+): string {
+  const endpoint = path.trim();
+
+  // Endpoints are paths relative to our API, never full or protocol-relative URLs.
+  // This prevents accidentally sending the bearer token to a host supplied as `path`.
+  if (
+    !endpoint ||
+    /^[a-z][a-z\d+.-]*:/i.test(endpoint) ||
+    endpoint.startsWith("//") ||
+    endpoint.includes("\\") ||
+    endpoint.includes("?") ||
+    endpoint.includes("#")
+  ) {
+    throw new TypeError("El endpoint debe ser una ruta relativa sin query ni fragmento.");
+  }
+
+  const normalizedBase = baseUrl.trim().replace(/\/+$/, "");
+  const normalizedPath = endpoint.replace(/^\/+/, "");
+  if (!normalizedPath) {
+    throw new TypeError("El endpoint debe incluir una ruta.");
+  }
+  const url = normalizedBase ? `${normalizedBase}/${normalizedPath}` : `/${normalizedPath}`;
   if (!query) return url;
 
   const params = new URLSearchParams();
@@ -269,48 +297,44 @@ export async function readErrorBody(response: Response): Promise<BackendErrorRes
 }
 
 /**
- * Resuelve el mensaje para el usuario a partir del contrato formal:
- * 1. Prioridad de contrato: `message` (el backend garantiza mensaje amigable en ErrorResponse.message).
- * 2. Si falta `message`, usa `error` (detalle técnico o mensaje de proveedor como Supabase).
- * 3. Si viene estructura `detalle` anidada, extrae su mensaje legible.
+ * Mensaje del contrato: **solo** `message`.
+ *
+ * El backend documenta tres formatos de error:
+ * - A `{ error, message, code? }` → `message` es el texto para el usuario.
+ * - B `{ timestamp, status, error, path }` (Spring por defecto) → no trae `message`.
+ * - C sin body o texto plano → no trae `message`.
+ *
+ * `error` es diagnóstico y nunca se muestra.
  */
 export function pickContractMessage(body: BackendErrorResponse | null): string {
-  if (!body) return "";
-  if (typeof body.message === "string" && body.message.trim()) {
-    return body.message.trim();
-  }
-  if (typeof body.error === "string" && body.error.trim()) {
-    return body.error.trim();
-  }
-  if (typeof body.detalle === "string" && body.detalle.trim()) {
-    return body.detalle.trim();
-  }
-  const anyDetalle = body.detalle as Record<string, any> | undefined;
-  if (typeof anyDetalle?.msg === "string" && anyDetalle.msg.trim()) {
-    return anyDetalle.msg.trim();
-  }
-  if (typeof anyDetalle?.error_description === "string" && anyDetalle.error_description.trim()) {
-    return anyDetalle.error_description.trim();
-  }
-  return "";
+  return typeof body?.message === "string" ? body.message.trim() : "";
 }
 
 async function toApiError(response: Response, request: ApiRequest): Promise<ApiError> {
   const data = await readErrorBody(response);
   let message = pickContractMessage(data);
 
-  // El 403 del backend suele traer el mensaje crudo de Spring Security
-  // ("Access Denied"), que no le dice nada al usuario.
-  if (response.status === 403 && request.forbidden) {
+  // Formato C (403 de Spring Security, sin body): se usa la traducción propia
+  // del servicio, que ya existe. No se agregan traducciones nuevas.
+  if (!message && response.status === 403 && request.forbidden) {
     message = request.forbidden;
   }
 
+  // Formatos B y C: no hay texto que mostrar, así que se muestra el código.
+  // Se prefiere el `code` del cuerpo (código del proveedor), luego `status`
+  // (Spring por defecto) y por último el status HTTP.
+  if (!message) {
+    const code = data?.code ?? data?.status ?? response.status;
+    message = `Código de error: ${code}`;
+  }
+
+  // Traducciones de dominio que ya existían (Stock insuficiente, etc.).
   const translated = request.errors?.find(([needle]) => message.includes(needle));
   if (translated) {
     message = translated[1];
   }
 
-  return new ApiError(response.status, cleanErrorMessage(message || request.fallback, response.status, data), data);
+  return new ApiError(response.status, message, data);
 }
 
 /**
@@ -320,14 +344,22 @@ async function toApiError(response: Response, request: ApiRequest): Promise<ApiE
 export async function apiFetch<T>(path: string, request: ApiRequest): Promise<T> {
   const token = request.token ?? (await getAuthToken());
 
-  const response = await fetch(buildUrl(path, request.query), {
-    method: request.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: request.body === undefined ? undefined : JSON.stringify(request.body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path, request.query), {
+      method: request.method ?? "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: request.body === undefined ? undefined : JSON.stringify(request.body),
+    });
+  } catch (error) {
+    // Fallo de red: no hay respuesta del backend, así que no hay código HTTP.
+    throw new ApiError(0, request.fallback, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   if (!response.ok) {
     throw await toApiError(response, request);

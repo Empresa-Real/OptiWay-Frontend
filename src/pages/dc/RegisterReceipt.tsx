@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { ReceiptRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
 import { registrarIngreso } from "../../services/ingresoMercancia";
-import { cleanErrorMessage } from "../../services/http";
 
 export default function RegisterReceipt({
   dcId,
@@ -43,7 +42,7 @@ export default function RegisterReceipt({
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(cleanErrorMessage(err?.message || "Error al registrar el ingreso", err?.status, err?.data));
+      setError(err?.message || "Error al registrar el ingreso");
     } finally {
       setSubmitting(false);
     }

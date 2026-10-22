@@ -97,7 +97,7 @@ describe("Servicio de Inventario (inventario.ts)", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 400,
-      text: async () => JSON.stringify({ error: "La tienda no existe." }),
+      text: async () => JSON.stringify({ message: "La tienda no existe." }),
     } as Response);
 
     await expect(getInventarioTienda({ tiendaId: 999 })).rejects.toThrow(

@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import type { Product, ProductEdit } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getProductos, createProducto, updateProducto, cambiarEstadoProducto } from "../../services/productos";
-import { cleanErrorMessage } from "../../services/http";
 
 export default function ProductsPanel({
   products: initialProducts,
@@ -36,7 +35,7 @@ export default function ProductsPanel({
       onUpdateProducts(data || []);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/productos:", err?.message || err);
-      setError(cleanErrorMessage(err?.message || "Error al cargar productos", err?.status, err?.data));
+      setError(err?.message || "Error al cargar productos");
     } finally {
       setRefreshing(false);
     }
@@ -144,7 +143,7 @@ export default function ProductsPanel({
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error("Error al guardar producto:", err?.data || err);
-      setError(cleanErrorMessage(err?.message || "Error al guardar el producto", err?.status, err?.data));
+      setError(err?.message || "Error al guardar el producto");
     } finally {
       setSubmitting(false);
     }
@@ -166,7 +165,7 @@ export default function ProductsPanel({
       setSuccessMessage("Producto reactivado");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(cleanErrorMessage(err?.message || "Error al reactivar el producto", err?.status, err?.data));
+      setError(err?.message || "Error al reactivar el producto");
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +185,7 @@ export default function ProductsPanel({
       setSuccessMessage("Producto desactivado");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(cleanErrorMessage(err?.message || "Error al desactivar el producto", err?.status, err?.data));
+      setError(err?.message || "Error al desactivar el producto");
     } finally {
       setSubmitting(false);
     }

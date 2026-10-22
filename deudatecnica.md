@@ -116,30 +116,55 @@ Commit `5e3f18e`. Antes cada servicio copiaba su propio `API_BASE_URL`, `getAuth
 | `const API_BASE_URL` ×8 | 1 (`src/services/http.ts`) |
 | `getAuthToken()` ×7 | 1 |
 | `parseErrorResponse()` ×6 | 1 |
-| 3 precedencias de error distintas | 1: `message` → `error` → `detalle` → texto |
+| 3 precedencias de error distintas | 1: `message` → `code` (ver §2.2) |
 
 - Las traducciones de dominio son datos (`ErrorTranslations`), no cadenas de `else if`.
 - El 403 tiene un mensaje por servicio (`forbidden`).
 - `centrosDistribucion` ya no asigna `detalle` directo (se acabó el `[object Object]`).
 - `getCentrosDistribucion` propaga el error; `DCsPanel` lo muestra.
 
-### 2.2 Resuelto — contrato de error congelado
+### 2.2 Política de mensajes de error
 
-`BackendErrorResponse` es ahora el único contrato (`src/services/http.ts`):
+El backend documenta **tres formatos** (`docs/` del backend, §6). La regla del frontend es:
+
+| Caso | Qué se muestra |
+|---|---|
+| **A** `{ error, message, code? }` | `message` tal cual. `error` **nunca** se pinta |
+| **A** sin `message` | `Código de error: {code}` |
+| **B** Spring por defecto `{ timestamp, status, error, path }` | `Código de error: {status}` |
+| **C** sin body / texto plano | `Código de error: {HTTP status}` |
+| Fallo de red (sin respuesta) | `fallback` del servicio |
+| `403` sin body | `forbidden` del servicio (traducción que ya existía) |
+
+Se conservan las traducciones de dominio que ya existían (`errors`, `forbidden`), pero **no
+se agregan nuevas**. El resto queda como deuda técnica.
+
+```ts
+// http.ts
+message = pickContractMessage(data);          // solo `message`
+if (!message && status === 403) message = forbidden;
+if (!message) message = `Código de error: ${data?.code ?? data?.status ?? response.status}`;
+```
+
+`ApiError` mantiene `technicalError` para logs/diagnóstico, separado del texto de UI.
+
+### 2.3 Resuelto — contrato tipado
+
+`BackendErrorResponse` es el único contrato (`src/services/http.ts`):
 
 | Campo | Uso |
 |---|---|
-| `message` | Mensaje humano para la interfaz (prioridad 1) |
-| `error` | Detalle técnico. Se expone como `ApiError.technicalError` **solo para logs** |
+| `message` | Texto humano para la interfaz |
+| `error` | Detalle técnico → `ApiError.technicalError` (logs) |
 | `code` | Código del **proveedor**. No es el HTTP; ese está en `ApiError.status` |
-| `status` | Estado que algunos upstreams (GoTrue) mandan en el cuerpo; lo usa `cleanErrorMessage` para 429/422 |
-| `detalle` | Mensaje legible anidado (Supabase) |
+| `status` | Estado que algunos upstreams (GoTrue) mandan en el cuerpo; respaldo de `code` |
+| `detalle` | Metadatos de Supabase (ya no se usan para el texto) |
 
 `readErrorBody` **no inventa valores**: si el backend no manda `code` o `status`, quedan
 `undefined`. Eso evita que `err.code` signifique "HTTP status" en unos casos y "código del
 proveedor" en otros.
 
-### 2.3 Pendiente — errores silenciados en `loadAuxData`
+### 2.4 Pendiente — errores silenciados en `loadAuxData`
 
 ```ts
 getTiendas().catch(() => [])
@@ -149,6 +174,16 @@ getProductos().catch(() => [])
 
 Un 500 o un token vencido se ve exactamente igual que "no hay datos". **Deuda:** mostrar un
 aviso o registrar el error de forma visible, sin romper el arranque.
+
+### 2.5 Pendiente — `cleanErrorMessage` sin uso
+
+Tras la política de §2.2, `cleanErrorMessage()` (≈100 líneas de traducciones por palabra
+clave y parseo de JSON incrustado) quedó **sin consumidores**: solo lo llaman sus propios
+tests. La lógica que resolvía (rate limit de Supabase, mensajes con JSON) ahora la resuelve
+el backend en `message`.
+
+**Deuda:** decidir si se elimina junto con su bloque de tests en `usuarios.test.ts`. Se
+conserva por ahora para no borrar traducciones existentes sin revisarlas una por una.
 
 ---
 
@@ -204,7 +239,7 @@ desactualizado.
 
 ### 4.1 Estado
 
-- **68 tests unitarios en 7 archivos** (`npm test`) + **3 de integración** (`npm run test:live`).
+- **77 tests unitarios en 8 archivos** (`npm test`) + **3 de integración** (`npm run test:live`).
 - Con `fetch` mockeado: `auth`, `usuarios`, `tiendas`, `centrosDistribucion`, `ventas`,
   `ingresoMercancia`, `http`.
 - Los tests de `ventas` e `ingresoMercancia` se agregaron en `26ddbf3` **contra el contrato

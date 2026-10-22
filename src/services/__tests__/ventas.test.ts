@@ -82,7 +82,7 @@ describe("Servicio de Ventas (ventas.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "Stock insuficiente para el producto 5" }),
+        text: async () => JSON.stringify({ message: "Stock insuficiente para el producto 5" }),
       } as Response);
 
       await expect(registrarVenta({ tiendaId: 3, productoId: "5", quantity: 99 })).rejects.toThrow(

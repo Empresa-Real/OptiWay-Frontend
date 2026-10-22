@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import type { InventoryItem } from "../../types";
 import { getInventarioTienda, getInventarioCD } from "../../services/inventario";
-import { cleanErrorMessage } from "../../services/http";
 import { Badge, Input, Card, SectionHeader, Table } from "../../components/ui";
 
 /**
@@ -45,7 +44,7 @@ export default function InventoryView({
         })
         .catch((err: any) => {
           if (!cancelled) {
-            setError(cleanErrorMessage(err?.message || "No se pudo cargar el inventario", err?.status, err?.data));
+            setError(err?.message || "No se pudo cargar el inventario");
           }
         })
         .finally(() => {

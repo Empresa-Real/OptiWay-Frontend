@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import type { DC, Store } from "../../types";
 import { getCentrosDistribucion, createCentroDistribucion } from "../../services/centrosDistribucion";
-import { cleanErrorMessage } from "../../services/http";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 
 function ErrorBanner({ message }: { message: string }) {
@@ -38,9 +37,7 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
       setDCs(data);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/centros-distribucion:", err?.message || err);
-      setError(
-        cleanErrorMessage(err?.message || "No se pudieron cargar los centros de distribución.", err?.status, err?.data)
-      );
+      setError(err?.message || "No se pudieron cargar los centros de distribución.");
     } finally {
       if (isInitial) setInitialLoading(false);
       else setRefreshing(false);
@@ -79,9 +76,7 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
       setShowCreate(false);
     } catch (err: any) {
       console.error("Error al crear centro de distribución:", err?.data || err);
-      setError(
-        cleanErrorMessage(err?.message || "Error al crear el centro de distribución.", err?.status, err?.data)
-      );
+      setError(err?.message || "Error al crear el centro de distribución.");
     } finally {
       setSubmitting(false);
     }

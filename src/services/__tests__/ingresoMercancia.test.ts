@@ -72,7 +72,7 @@ describe("Servicio de Ingreso de Mercancía (ingresoMercancia.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "El origen es obligatorio" }),
+        text: async () => JSON.stringify({ message: "El origen es obligatorio" }),
       } as Response);
 
       await expect(
@@ -85,7 +85,7 @@ describe("Servicio de Ingreso de Mercancía (ingresoMercancia.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "El centro de distribución no existe." }),
+        text: async () => JSON.stringify({ message: "El centro de distribución no existe." }),
       } as Response);
 
       await expect(

@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { SaleRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
 import { registrarVenta } from "../../services/ventas";
-import { cleanErrorMessage } from "../../services/http";
 
 export default function RegisterSale({
   storeId,
@@ -43,7 +42,7 @@ export default function RegisterSale({
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(cleanErrorMessage(err?.message || "Error al registrar la venta", err?.status, err?.data));
+      setError(err?.message || "Error al registrar la venta");
     } finally {
       setSubmitting(false);
     }

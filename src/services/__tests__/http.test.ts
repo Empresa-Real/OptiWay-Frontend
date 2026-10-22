@@ -75,14 +75,13 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
       expect(resolved).toBe("El nombre del producto ya existe.");
     });
 
-    it("debe utilizar 'error' como alternativa cuando el backend no envía 'message'", () => {
+    it("no debe usar el campo técnico 'error' como texto para el usuario", () => {
       const contractError: BackendErrorResponse = {
         error: "JWT expired or signature invalid",
         code: 401,
       };
 
-      const resolved = pickContractMessage(contractError);
-      expect(resolved).toBe("JWT expired or signature invalid");
+      expect(pickContractMessage(contractError)).toBe("");
     });
 
     it("debe encapsular respuestas de texto plano bajo el contrato estándar sin romper el parseo", async () => {
@@ -96,7 +95,8 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
       expect(parsed).toEqual({ error: "Bad Gateway from upstream proxy" });
       // `code` es del proveedor: no se rellena con el HTTP.
       expect(parsed?.code).toBeUndefined();
-      expect(pickContractMessage(parsed)).toBe("Bad Gateway from upstream proxy");
+      // El texto plano es diagnóstico, no se muestra al usuario.
+      expect(pickContractMessage(parsed)).toBe("");
     });
 
     it("debe retornar null cuando el cuerpo de la respuesta está vacío (ej. 401 sin body)", async () => {
@@ -188,6 +188,56 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
           forbidden: "Solo el encargado de la tienda o un administrador pueden operar.",
         })
       ).rejects.toThrow("Solo el encargado de la tienda o un administrador pueden operar.");
+    });
+
+    it("muestra el 'code' del cuerpo cuando no hay message", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ code: 409, error: "duplicate key value violates unique constraint" }),
+      } as Response);
+
+      await expect(apiFetch("/api/productos", { method: "POST", fallback: "Error al crear" })).rejects.toThrow(
+        "Código de error: 409"
+      );
+    });
+
+    it("usa el 'status' del cuerpo (formato Spring por defecto) si no hay message ni code", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () =>
+          JSON.stringify({
+            timestamp: "2026-10-22T10:00:00",
+            status: 503,
+            error: "Service Unavailable",
+            path: "/api/tiendas",
+          }),
+      } as Response);
+
+      await expect(apiFetch("/api/tiendas", { fallback: "Error al consultar" })).rejects.toThrow(
+        "Código de error: 503"
+      );
+    });
+
+    it("usa el status HTTP cuando no hay message, ni code, ni status en el cuerpo", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: async () => "Bad Gateway",
+      } as Response);
+
+      await expect(apiFetch("/api/tiendas", { fallback: "Error al consultar" })).rejects.toThrow(
+        "Código de error: 502"
+      );
+    });
+
+    it("usa el fallback ante un fallo de red, donde no existe status", async () => {
+      vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Network down"));
+
+      await expect(apiFetch("/api/tiendas", { fallback: "No hay conexión con el servidor" })).rejects.toThrow(
+        "No hay conexión con el servidor"
+      );
     });
   });
 });

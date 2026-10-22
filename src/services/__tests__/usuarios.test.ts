@@ -166,9 +166,12 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
     });
 
     it("debe lanzar ApiError con mensaje limpio si el backend responde con error de límite de Supabase (429)", async () => {
+      // Formato A documentado: `message` en español + `code` del proveedor.
       const errorJson = {
-        error:
-          'Error de Supabase Auth (429 TOO_MANY_REQUESTS): {"code":429,"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}',
+        error: "email rate limit exceeded",
+        message:
+          "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario.",
+        code: 429,
       };
 
       vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
@@ -192,7 +195,7 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
         ok: false,
         status: 409,
         statusText: "Conflict",
-        text: async () => JSON.stringify({ error: "El correo ya existe" }),
+        text: async () => JSON.stringify({ message: "El correo electrónico ya se encuentra registrado en el sistema." }),
       } as Response);
 
       await expect(
