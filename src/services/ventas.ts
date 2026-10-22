@@ -115,7 +115,7 @@ export async function registrarVenta(payload: RegistrarVentaPayload): Promise<Sa
   const created: BackendVenta = await response.json();
 
   return {
-    id: String(created.id),
+    id: created.id,
     productId: String(created.productoId),
     quantity: created.cantidad,
     date: created.fechaHora,
