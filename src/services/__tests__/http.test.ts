@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   apiFetch,
+  buildUrl,
   readErrorBody,
   pickContractMessage,
   ApiError,
@@ -27,6 +28,44 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("buildUrl", () => {
+    it("normaliza las barras de la base y del endpoint", () => {
+      expect(buildUrl("api/tiendas", undefined, "https://api.example.com")).toBe(
+        "https://api.example.com/api/tiendas"
+      );
+      expect(buildUrl("/api/tiendas", undefined, "https://api.example.com/")).toBe(
+        "https://api.example.com/api/tiendas"
+      );
+    });
+
+    it("codifica query params y conserva 0 y false, filtrando valores vacíos", () => {
+      const url = new URL(
+        buildUrl(
+          "/api/tiendas",
+          { pagina: 0, activa: false, nombre: "CD Ñandú", vacio: "", ausente: undefined, nulo: null },
+          "https://api.example.com/"
+        )
+      );
+
+      expect(url.pathname).toBe("/api/tiendas");
+      expect(url.searchParams.get("pagina")).toBe("0");
+      expect(url.searchParams.get("activa")).toBe("false");
+      expect(url.searchParams.get("nombre")).toBe("CD Ñandú");
+      expect(url.searchParams.has("vacio")).toBe(false);
+      expect(url.searchParams.has("ausente")).toBe(false);
+      expect(url.searchParams.has("nulo")).toBe(false);
+    });
+
+    it("rechaza endpoints que no sean rutas relativas", () => {
+      expect(() => buildUrl("https://otro-host.example/api", undefined, "https://api.example.com")).toThrow(
+        "El endpoint debe ser una ruta relativa"
+      );
+      expect(() => buildUrl("//otro-host.example/api", undefined, "https://api.example.com")).toThrow(
+        "El endpoint debe ser una ruta relativa"
+      );
+    });
   });
 
   describe("Contrato congelado BackendErrorResponse", () => {
@@ -126,6 +165,30 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
   });
 
   describe("apiFetch con manejo de respuestas y errores", () => {
+    it("usa buildUrl y envía el token en Authorization", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ resultado: "ok" }),
+      } as Response);
+
+      await apiFetch("actuator/health", {
+        fallback: "Error genérico",
+        query: { pagina: 0, activa: false },
+      });
+
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const [requestedUrl, requestInit] = fetchMock.mock.calls[0];
+      const baseUrl = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+      const url = new URL(String(requestedUrl), baseUrl || "https://api.example.com");
+      expect(`${url.origin}${url.pathname}`).toBe(
+        `${baseUrl || "https://api.example.com"}/actuator/health`
+      );
+      expect(url.searchParams.get("pagina")).toBe("0");
+      expect(url.searchParams.get("activa")).toBe("false");
+      expect(requestInit?.headers).toMatchObject({ Authorization: "Bearer mock-valid-jwt" });
+    });
+
     it("debe resolver exitosamente peticiones con código 200", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
         ok: true,
