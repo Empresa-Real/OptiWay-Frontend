@@ -137,8 +137,16 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
 
 // ─── Table ─────────────────────────────────────────────────────────────
 
-const Table = ({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) => (
-  <div className="overflow-x-auto">
+const Table = ({
+  headers,
+  rows,
+  containerClassName = "overflow-x-auto",
+}: {
+  headers: string[];
+  rows: React.ReactNode[][];
+  containerClassName?: string;
+}) => (
+  <div className={containerClassName}>
     <table className="w-full text-sm border-collapse">
       <thead>
         <tr className="border-b border-[var(--border)]">
