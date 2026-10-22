@@ -302,5 +302,11 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
         "No hay conexión con el servidor"
       );
     });
+
+    it("no debe confundir un endpoint inválido con un fallo de red", async () => {
+      await expect(
+        apiFetch("https://otro-host.example/api", { fallback: "Fallback de red" })
+      ).rejects.toThrow("El endpoint debe ser una ruta relativa");
+    });
   });
 });

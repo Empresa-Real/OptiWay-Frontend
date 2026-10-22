@@ -211,11 +211,15 @@ async function toApiError(response: Response, request: ApiRequest): Promise<ApiE
  * Lanza `ApiError` con mensaje humano ante cualquier respuesta no-2xx.
  */
 export async function apiFetch<T>(path: string, request: ApiRequest): Promise<T> {
+  // Se construye (y valida) antes de pedir el token: un endpoint inválido es un
+  // error de programación y debe fallar como tal, no disfrazarse de fallo de red.
+  const url = buildUrl(path, request.query);
+
   const token = request.token ?? (await getAuthToken());
 
   let response: Response;
   try {
-    response = await fetch(buildUrl(path, request.query), {
+    response = await fetch(url, {
       method: request.method ?? "GET",
       headers: {
         Authorization: `Bearer ${token}`,
