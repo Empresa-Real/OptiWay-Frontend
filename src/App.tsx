@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Role, Product, Store, DC, InventoryItem } from "./types";
+import type { User, Role, Product, Store, DC } from "./types";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -15,7 +15,6 @@ import { supabase } from "./services/supabase";
 import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
 import { getProductos } from "./services/productos";
-import { getInventarioTienda, getInventarioCD } from "./services/inventario";
 import { Card, SectionHeader } from "./components/ui";
 
 function NoLocationNotice({ message }: { message: string }) {
@@ -39,8 +38,6 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [dcs, setDCs] = useState<DC[]>([]);
-  const [inventoryStore, setInventoryStore] = useState<InventoryItem[]>([]);
-  const [inventoryCD, setInventoryCD] = useState<InventoryItem[]>([]);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isSettingPassword, setIsSettingPassword] = useState<boolean>(() => {
     const hash = window.location.hash;
@@ -103,17 +100,6 @@ export default function App() {
         setStores(storesData || []);
         setDCs(dcsData || []);
         setProducts(productsData || []);
-
-        const asignacion = currentUser?.asignacion;
-
-        if (asignacion?.tipo === "tienda") {
-          const inv = await getInventarioTienda({ tiendaId: asignacion.id }).catch(() => []);
-          setInventoryStore(inv || []);
-        }
-        if (asignacion?.tipo === "cd") {
-          const inv = await getInventarioCD({ centroDistribucionId: asignacion.id }).catch(() => []);
-          setInventoryCD(inv || []);
-        }
       } catch (err) {
         console.warn("Aviso al cargar sucursales:", err);
       }
@@ -153,8 +139,6 @@ export default function App() {
     setDCs([]);
     setUsers([]);
     setProducts([]);
-    setInventoryStore([]);
-    setInventoryCD([]);
   };
 
   const handleUpdateUsers = (newUsers: User[]) => {
@@ -231,17 +215,23 @@ export default function App() {
         }
         return <RegisterSale storeId={storeId} products={products} />;
       case "inventory":
+        if (!storeId) {
+          return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
+        }
         return (
           <InventoryView
-            items={inventoryStore}
+            source={{ tipo: "tienda", id: storeId }}
             title="Inventario de mi tienda"
             subtitle={`${stores.find((s) => s.id === storeId)?.name ?? "Tienda"} · Solo consulta`}
           />
         );
       case "dc-inventory":
+        if (!dcId) {
+          return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
+        }
         return (
           <InventoryView
-            items={inventoryCD}
+            source={{ tipo: "cd", id: dcId }}
             title="Inventario de mi centro de distribución"
             subtitle={`${dcs.find((d) => d.id === dcId)?.name ?? "CD"} · Solo consulta`}
           />
