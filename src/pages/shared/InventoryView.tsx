@@ -3,11 +3,12 @@ import type { InventoryItem } from "../../types";
 import { getInventarioTienda, getInventarioCD } from "../../services/inventario";
 import { Badge, Input, Card, SectionHeader, Table } from "../../components/ui";
 
-/**
- * El filtro lo aplica el backend (`GET /api/inventario?nombre=...`), no la vista.
- * Cargar todo y filtrar en memoria funcionaba solo mientras el inventario era chico
- * y dejaba la pantalla desactualizada tras una venta.
- */
+function parseProductIdSearch(term: string): number | null {
+  if (!/^\d+$/.test(term)) return null;
+  const productId = Number(term);
+  return Number.isSafeInteger(productId) ? productId : null;
+}
+
 export default function InventoryView({
   source,
   title,
@@ -18,47 +19,96 @@ export default function InventoryView({
   subtitle?: string;
 }) {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [idResults, setIdResults] = useState<InventoryItem[] | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [searchingById, setSearchingById] = useState(false);
   const [error, setError] = useState("");
 
   const { tipo, id } = source;
+  const term = search.trim();
+  const productId = parseProductIdSearch(term);
 
+  // Carga el inventario una vez al entrar; la búsqueda por texto es local.
   useEffect(() => {
     let cancelled = false;
-    const term = search.trim();
+    setLoading(true);
+    setError("");
 
-    // Debounce: no disparamos una petición por cada tecla.
+    const request =
+      tipo === "tienda"
+        ? getInventarioTienda({ tiendaId: id })
+        : getInventarioCD({ centroDistribucionId: id });
+
+    request
+      .then((data) => {
+        if (!cancelled) setItems(data);
+      })
+      .catch((err: any) => {
+        if (!cancelled) setError(err?.message || "No se pudo cargar el inventario");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tipo, id]);
+
+  // Los IDs se consultan por igualdad exacta en el endpoint del backend.
+  useEffect(() => {
+    if (productId === null) {
+      setIdResults(null);
+      setSearchingById(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIdResults(null);
+    setSearchingById(true);
     const timer = setTimeout(() => {
-      setLoading(true);
       setError("");
 
       const request =
         tipo === "tienda"
-          ? getInventarioTienda({ tiendaId: id, nombre: term || undefined })
-          : getInventarioCD({ centroDistribucionId: id, nombre: term || undefined });
+          ? getInventarioTienda({ tiendaId: id, productoId: productId })
+          : getInventarioCD({ centroDistribucionId: id, productoId: productId });
 
       request
         .then((data) => {
-          if (!cancelled) setItems(data);
+          if (!cancelled) setIdResults(data);
         })
         .catch((err: any) => {
           if (!cancelled) {
-            setError(err?.message || "No se pudo cargar el inventario");
+            setIdResults([]);
+            setError(err?.message || "No se pudo buscar el producto");
           }
         })
         .finally(() => {
-          if (!cancelled) setLoading(false);
+          if (!cancelled) setSearchingById(false);
         });
-    }, term ? 300 : 0);
+    }, 300);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [tipo, id, search]);
+  }, [tipo, id, productId]);
 
-  const rows = items.map((item) => {
+  const visibleItems =
+    productId !== null
+      ? idResults ?? []
+      : items.filter((item) => {
+          const normalizedTerm = term.toLowerCase();
+          return (
+            item.nombreProducto?.toLowerCase().includes(normalizedTerm) ||
+            item.categoriaProducto?.toLowerCase().includes(normalizedTerm) ||
+            item.productId.includes(term)
+          );
+        });
+
+  const rows = visibleItems.map((item) => {
     const low = item.stockBajo ?? item.quantity < item.minStock;
     return [
       <span className="font-medium">{item.nombreProducto ?? item.productId}</span>,
@@ -74,14 +124,17 @@ export default function InventoryView({
     ];
   });
 
+  const waitingForResults = loading || searchingById;
+  const hasNoResultsYet = productId !== null ? idResults === null : items.length === 0;
+
   return (
     <div>
       <SectionHeader title={title} subtitle={subtitle} />
       <div className="mb-4">
         <Input
-          placeholder="Buscar por nombre de producto…"
+          placeholder="Buscar por producto, categoría o ID…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
         />
       </div>
       {error && (
@@ -94,15 +147,17 @@ export default function InventoryView({
           {error}
         </div>
       )}
-      {loading && items.length === 0 ? (
+      {waitingForResults && hasNoResultsYet ? (
         <div className="p-4 text-sm text-[var(--text-muted)]">Cargando inventario...</div>
       ) : (
         <Card>
-          {loading && <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">Buscando...</p>}
+          {waitingForResults && <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">Buscando...</p>}
           <Table headers={["Producto", "Categoría", "Cantidad disponible"]} rows={rows} />
         </Card>
       )}
-      <p className="mt-3 text-xs text-[var(--text-muted)]">Vista de solo consulta — las cantidades se actualizan con las ventas e ingresos registrados.</p>
+      <p className="mt-3 text-xs text-[var(--text-muted)]">
+        Vista de solo consulta — las cantidades se actualizan con las ventas e ingresos registrados.
+      </p>
     </div>
   );
 }
