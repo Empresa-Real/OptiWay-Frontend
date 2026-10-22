@@ -10,7 +10,7 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
   - *Vista:* [`src/pages/Login.tsx`](./src/pages/Login.tsx)
 - [x] **`PUT /auth/v1/user` (Supabase Auth)**
   - *Función frontend:* `updatePassword(password)` en [`src/services/auth.ts`](./src/services/auth.ts)
-  - *Vista:* [`src/pages/SetPassword.tsx`](./src/pages/SetPassword.tsx) y [`set-password.html`](./set-password.html)
+  - *Vista:* [`src/pages/SetPassword.tsx`](./src/pages/SetPassword.tsx) (activada por hash de invitación en la raíz)
 - [x] **`GET /api/usuarios/me` (Backend Spring Boot)**
   - *Función frontend:* `fetchUsuarioActual(token)` y `getCurrentUser()` en [`src/services/auth.ts`](./src/services/auth.ts)
   - *Uso:* Carga y mapea el rol real (`ADMINISTRADOR`, `ENCARGADO_TIENDA`, `ENCARGADO_CD`, `PLANIFICADOR`) al iniciar sesión o recargar página.
