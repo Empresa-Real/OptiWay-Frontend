@@ -175,15 +175,13 @@ getProductos().catch(() => [])
 Un 500 o un token vencido se ve exactamente igual que "no hay datos". **Deuda:** mostrar un
 aviso o registrar el error de forma visible, sin romper el arranque.
 
-### 2.5 Pendiente — `cleanErrorMessage` sin uso
+### 2.5 Resuelto — `cleanErrorMessage` eliminado
 
-Tras la política de §2.2, `cleanErrorMessage()` (≈100 líneas de traducciones por palabra
-clave y parseo de JSON incrustado) quedó **sin consumidores**: solo lo llaman sus propios
-tests. La lógica que resolvía (rate limit de Supabase, mensajes con JSON) ahora la resuelve
-el backend en `message`.
+Tras la política de §2.2, `cleanErrorMessage()` quedó sin consumidores (solo lo llamaban
+sus propios tests). La lógica que resolvía (rate limit de Supabase, mensajes con JSON
+incrustado) la resuelve el backend en `message`.
 
-**Deuda:** decidir si se elimina junto con su bloque de tests en `usuarios.test.ts`. Se
-conserva por ahora para no borrar traducciones existentes sin revisarlas una por una.
+Se eliminaron la función (~130 líneas) y sus 6 tests en `usuarios.test.ts`.
 
 ---
 
@@ -239,7 +237,7 @@ desactualizado.
 
 ### 4.1 Estado
 
-- **77 tests unitarios en 8 archivos** (`npm test`) + **3 de integración** (`npm run test:live`).
+- **75 tests unitarios en 8 archivos** (`npm test`) + **3 de integración** (`npm run test:live`).
 - Con `fetch` mockeado: `auth`, `usuarios`, `tiendas`, `centrosDistribucion`, `ventas`,
   `ingresoMercancia`, `http`.
 - Los tests de `ventas` e `ingresoMercancia` se agregaron en `26ddbf3` **contra el contrato
@@ -316,6 +314,9 @@ permanece sin commitear (no lo generó este trabajo). Definir si se descarta o s
 
 | Commit | Qué resolvió |
 |---|---|
+| `7705b7d` | Cobertura de `buildUrl` (barras, encoding, `0`/`false`, rutas absolutas) y del header `Authorization` |
+| `1053502` | Eliminado `cleanErrorMessage` (sin uso tras la política de mensajes) y sus 6 tests |
+| `f68f12b` | Política de errores: `message` o `Código de error: {code/status}`; `error` nunca se muestra |
 | `7d8f320` | Contrato de error único (`BackendErrorResponse`): `code` = proveedor, `status` conservado; tests live fuera de `npm test` |
 | `b91f679` | `DCsPanel` con manejo de errores y botón Actualizar; logout limpia productos e inventario; se elimina el fetch duplicado de productos |
 | `5e3f18e` | `src/services/http.ts`: un solo `apiFetch`, token y parser de errores (−373 líneas netas) |
