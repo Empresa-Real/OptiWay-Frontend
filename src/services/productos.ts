@@ -34,6 +34,18 @@ export interface CambiarEstadoProductoPayload {
   activo: boolean;
 }
 
+function mapBackendProducto(p: BackendProducto): Product {
+  return {
+    id: String(p.id),
+    identificador: p.identificador,
+    name: p.nombre,
+    category: p.categoria,
+    price: Number(p.precio),
+    unit: p.unidadMedida,
+    status: p.activo ? "active" : "inactive",
+  };
+}
+
 async function parseErrorResponse(response: Response, defaultMessage: string): Promise<ApiError> {
   let errorData: Record<string, any> | null = null;
   let specificMessage = "";
@@ -110,14 +122,7 @@ export async function getProductos(): Promise<Product[]> {
 
   const data: BackendProducto[] = await response.json();
 
-  return data.map((p) => ({
-    id: String(p.id),
-    name: p.nombre,
-    category: p.categoria,
-    price: Number(p.precio),
-    unit: p.unidadMedida,
-    status: p.activo ? ("active" as const) : ("inactive" as const),
-  }));
+  return data.map(mapBackendProducto);
 }
 
 /**
@@ -150,14 +155,7 @@ export async function createProducto(payload: CrearProductoPayload): Promise<Pro
 
   const created: BackendProducto = await response.json();
 
-  return {
-    id: String(created.id),
-    name: created.nombre,
-    category: created.categoria,
-    price: Number(created.precio),
-    unit: created.unidadMedida,
-    status: created.activo ? ("active" as const) : ("inactive" as const),
-  };
+  return mapBackendProducto(created);
 }
 
 /**
@@ -189,14 +187,7 @@ export async function updateProducto(id: string, payload: EditarProductoPayload)
 
   const updated: BackendProducto = await response.json();
 
-  return {
-    id: String(updated.id),
-    name: updated.nombre,
-    category: updated.categoria,
-    price: Number(updated.precio),
-    unit: updated.unidadMedida,
-    status: updated.activo ? ("active" as const) : ("inactive" as const),
-  };
+  return mapBackendProducto(updated);
 }
 
 /**
@@ -221,12 +212,5 @@ export async function cambiarEstadoProducto(id: string, activo: boolean): Promis
 
   const updated: BackendProducto = await response.json();
 
-  return {
-    id: String(updated.id),
-    name: updated.nombre,
-    category: updated.categoria,
-    price: Number(updated.precio),
-    unit: updated.unidadMedida,
-    status: updated.activo ? ("active" as const) : ("inactive" as const),
-  };
+  return mapBackendProducto(updated);
 }
