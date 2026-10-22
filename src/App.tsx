@@ -86,15 +86,15 @@ export default function App() {
         setStores(storesData || []);
         setDCs(dcsData || []);
 
-        const role = currentUser.role as Role;
-        const locationId = currentUser.locationId;
+        const user = currentUser;
+        const asignacion = user?.asignacion;
 
-        if (role === "store" && locationId) {
-          const inv = await getInventarioTienda({ tiendaId: locationId }).catch(() => []);
+        if (asignacion?.tipo === "tienda") {
+          const inv = await getInventarioTienda({ tiendaId: asignacion.id }).catch(() => []);
           setInventoryStore(inv || []);
         }
-        if (role === "dc" && locationId) {
-          const inv = await getInventarioCD({ centroDistribucionId: locationId }).catch(() => []);
+        if (asignacion?.tipo === "cd") {
+          const inv = await getInventarioCD({ centroDistribucionId: asignacion.id }).catch(() => []);
           setInventoryCD(inv || []);
         }
       } catch (err) {
