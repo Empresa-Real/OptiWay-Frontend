@@ -16,6 +16,21 @@ import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
 import { getProductos } from "./services/productos";
 import { getInventarioTienda, getInventarioCD } from "./services/inventario";
+import { Card, SectionHeader } from "./components/ui";
+
+function NoLocationNotice({ message }: { message: string }) {
+  return (
+    <div>
+      <SectionHeader title="Sin ubicación asignada" subtitle="Todavía no puedes registrar operaciones" />
+      <Card className="p-6">
+        <p className="text-sm text-[var(--text)]">{message}</p>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          Pide a un administrador que te asigne una ubicación desde la sección Usuarios.
+        </p>
+      </Card>
+    </div>
+  );
+}
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -208,6 +223,9 @@ export default function App() {
       case "dcs":
         return <DCsPanel stores={stores} />;
       case "sale":
+        if (!storeId) {
+          return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
+        }
         return <RegisterSale storeId={storeId} products={products} />;
       case "inventory":
         return (
@@ -226,6 +244,9 @@ export default function App() {
           />
         );
       case "dc-receipt":
+        if (!dcId) {
+          return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
+        }
         return <RegisterReceipt dcId={dcId} products={products} />;
       default:
         return null;

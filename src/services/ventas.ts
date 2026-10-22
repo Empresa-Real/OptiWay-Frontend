@@ -87,19 +87,29 @@ async function getAuthToken(): Promise<string> {
 
 /**
  * Registra una venta en una tienda.
- * Endpoint: POST /api/ventas
+ * Endpoint: POST /api/tiendas/{tiendaId}/ventas
+ * El id de la tienda viaja en la URL, no en el body.
  */
 export async function registrarVenta(payload: RegistrarVentaPayload): Promise<SaleRecord> {
+  if (!Number.isInteger(payload.tiendaId) || payload.tiendaId <= 0) {
+    throw new ApiError(400, "No tienes una tienda asignada. Pide a un administrador que te asigne una.", {
+      error: "Tienda no asignada",
+    });
+  }
+
   const token = await getAuthToken();
 
-  const body = {
-    tiendaId: payload.tiendaId,
+  const body: { productoId: number; cantidad: number; fechaHora?: string } = {
     productoId: Number(payload.productoId),
     cantidad: payload.quantity,
-    fechaHora: payload.fechaHora || new Date().toISOString(),
   };
+  // El backend espera LocalDateTime sin zona horaria. Si no hay fecha, se omite
+  // y el servidor usa LocalDateTime.now(), tal como documenta RegistrarVentaRequest.
+  if (payload.fechaHora) {
+    body.fechaHora = payload.fechaHora;
+  }
 
-  const response = await fetch(`${API_BASE_URL}/api/ventas`, {
+  const response = await fetch(`${API_BASE_URL}/api/tiendas/${payload.tiendaId}/ventas`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

@@ -25,6 +25,7 @@ export default function RegisterReceipt({
 
     try {
       const created = await registrarIngreso({
+        centroDistribucionId: dcId,
         productoId: form.productId,
         quantity: Number(form.quantity),
         origin: form.origin,

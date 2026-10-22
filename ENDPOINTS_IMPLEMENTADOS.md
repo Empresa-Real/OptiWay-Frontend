@@ -85,10 +85,13 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 
 ---
 
-## 7. Operaciones y Movimientos (`ingreso-mercancia-controller` & `venta-controller`)
-- [x] `POST /api/ingresos-mercancia` (Recepción de mercancía en CD)
-  - *Función frontend:* `registrarIngreso({ productoId, quantity, origin })` en [`src/services/ingresoMercancia.ts`](./src/services/ingresoMercancia.ts)
+## 7. Operaciones y Movimientos (`TiendaController` & `CentroDistribucionController`)
+- [x] `POST /api/centros-distribucion/{id}/ingresos` (Recepción de mercancía en CD)
+  - *Alias corto:* `POST /api/cd/{id}/ingresos`
+  - *Función frontend:* `registrarIngreso({ centroDistribucionId, productoId, quantity, origin })` en [`src/services/ingresoMercancia.ts`](./src/services/ingresoMercancia.ts)
+  - *Body:* `{ productoId, cantidad, origen }` — el id del CD viaja en la URL
   - *Vista:* [`src/pages/dc/RegisterReceipt.tsx`](./src/pages/dc/RegisterReceipt.tsx) (formulario conectado al backend con control de errores)
-- [x] `POST /api/ventas` (Registro de venta en tienda)
+- [x] `POST /api/tiendas/{id}/ventas` (Registro de venta en tienda)
   - *Función frontend:* `registrarVenta({ tiendaId, productoId, quantity, fechaHora? })` en [`src/services/ventas.ts`](./src/services/ventas.ts)
+  - *Body:* `{ productoId, cantidad, fechaHora }` — el id de la tienda viaja en la URL
   - *Vista:* [`src/pages/store/RegisterSale.tsx`](./src/pages/store/RegisterSale.tsx) (formulario conectado al backend con control de errores)

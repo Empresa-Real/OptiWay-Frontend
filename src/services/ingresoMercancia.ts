@@ -15,6 +15,7 @@ export interface BackendIngresoMercancia {
 }
 
 export interface RegistrarIngresoPayload {
+  centroDistribucionId: number;
   productoId: string;
   quantity: number;
   origin: string;
@@ -82,9 +83,16 @@ async function getAuthToken(): Promise<string> {
 
 /**
  * Registra un ingreso de mercancía en un centro de distribución.
- * Endpoint: POST /api/ingresos-mercancia
+ * Endpoint: POST /api/centros-distribucion/{centroDistribucionId}/ingresos
+ * (alias corto: POST /api/cd/{id}/ingresos). El id del CD viaja en la URL.
  */
 export async function registrarIngreso(payload: RegistrarIngresoPayload): Promise<ReceiptRecord> {
+  if (!Number.isInteger(payload.centroDistribucionId) || payload.centroDistribucionId <= 0) {
+    throw new ApiError(400, "No tienes un centro de distribución asignado. Pide a un administrador que te asigne uno.", {
+      error: "Centro de distribución no asignado",
+    });
+  }
+
   const token = await getAuthToken();
 
   const body = {
@@ -93,14 +101,17 @@ export async function registrarIngreso(payload: RegistrarIngresoPayload): Promis
     origen: payload.origin.trim(),
   };
 
-  const response = await fetch(`${API_BASE_URL}/api/ingresos-mercancia`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/centros-distribucion/${payload.centroDistribucionId}/ingresos`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
 
   if (!response.ok) {
     throw await parseErrorResponse(response, "Error al registrar el ingreso de mercancía");

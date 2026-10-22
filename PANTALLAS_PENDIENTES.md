@@ -37,8 +37,8 @@ Todas las pantallas listadas ya leen y escriben contra la API. El archivo
 | `src/pages/admin/DCsPanel.tsx` | `GET/POST /api/centros-distribucion`, `PUT /api/centros-distribucion/{id}/encargado` |
 | `src/pages/admin/ProductsPanel.tsx` | `GET/POST /api/productos`, `PUT /api/productos/{id}`, `PUT /api/productos/{id}/estado` |
 | `src/pages/shared/InventoryView.tsx` | `GET /api/inventario`, `GET /api/inventario/centro-distribucion` |
-| `src/pages/store/RegisterSale.tsx` | `POST /api/ventas` |
-| `src/pages/dc/RegisterReceipt.tsx` | `POST /api/ingresos-mercancia` |
+| `src/pages/store/RegisterSale.tsx` | `POST /api/tiendas/{id}/ventas` |
+| `src/pages/dc/RegisterReceipt.tsx` | `POST /api/centros-distribucion/{id}/ingresos` |
 
 Los catálogos (productos, tiendas, centros de distribución) se cargan una sola vez en
 `App.tsx` y se pasan como props. Ninguna pantalla hace `fetch` propio.

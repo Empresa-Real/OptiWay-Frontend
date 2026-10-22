@@ -142,7 +142,7 @@ export function cleanErrorMessage(
   if (lower.includes("not found") || statusCode === 404) {
     return "El usuario solicitado no fue encontrado en el sistema.";
   }
-  if (lower.includes("forbidden") || lower.includes("denegado") || statusCode === 403) {
+  if (lower.includes("forbidden") || lower.includes("denegado")) {
     return "No tienes permisos de administrador para realizar esta operación.";
   }
   if (statusCode === 502) {
