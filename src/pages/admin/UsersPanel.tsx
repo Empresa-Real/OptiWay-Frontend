@@ -6,7 +6,6 @@ import {
   createUsuario,
   updateRolUsuario,
   deleteUsuario,
-  cleanErrorMessage,
 } from "../../services/usuarios";
 import { getTiendas, asignarEncargadoTienda } from "../../services/tiendas";
 import { getCentrosDistribucion, updateEncargadoCentroDistribucion } from "../../services/centrosDistribucion";
@@ -118,15 +117,23 @@ export default function UsersPanel({
 
     if (asignacion.tipo === "tienda") {
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-          🏪 <span>{nombre}</span>
+        <span
+          title={nombre}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 max-w-[200px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+        >
+          <span className="shrink-0">🏪</span>
+          <span className="truncate">{nombre}</span>
         </span>
       );
     }
 
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-        📦 <span>{nombre}</span>
+      <span
+        title={nombre}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 max-w-[200px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+      >
+        <span className="shrink-0">📦</span>
+        <span className="truncate">{nombre}</span>
       </span>
     );
   };
@@ -283,27 +290,38 @@ export default function UsersPanel({
 
   const renderErrorBox = (message: string | null) => {
     if (!message) return null;
-    const clean = cleanErrorMessage(message);
     return (
       <div className="flex items-start gap-2.5 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3.5 py-2.5 border border-red-200">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
         </svg>
-        <span className="font-medium leading-relaxed">{clean}</span>
+        <span className="font-medium leading-relaxed">{message}</span>
       </div>
     );
   };
 
   const rows = users.map((u) => [
-    <span className="font-medium">{u.name}</span>,
-    <span className="text-[var(--text-muted)]">{u.email}</span>,
-    roleBadge(u.role),
+    <span
+      className="font-medium block truncate max-w-[190px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+      title={u.name}
+    >
+      {u.name}
+    </span>,
+    <span
+      className="text-[var(--text-muted)] block truncate max-w-[190px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+      title={u.email}
+    >
+      {u.email}
+    </span>,
+    <div className="whitespace-nowrap">{roleBadge(u.role)}</div>,
     renderLocationCell(u),
-    <Badge variant={u.status === "active" ? "success" : "neutral"}>
-      {u.status === "active" ? "Activo" : "Inactivo"}
-    </Badge>,
+    <div className="whitespace-nowrap">
+      <Badge variant={u.status === "active" ? "success" : "neutral"}>
+        {u.status === "active" ? "Activo" : "Inactivo"}
+      </Badge>
+    </div>,
     <div
-      className="relative inline-block text-left"
+      className="relative inline-block text-left whitespace-nowrap"
       key={u.id}
       onClick={(e) => e.stopPropagation()}
     >
@@ -335,7 +353,10 @@ export default function UsersPanel({
           onClick={(e) => e.stopPropagation()}
           className="absolute right-0 mt-1.5 w-52 rounded-lg shadow-xl border border-[var(--border)] z-50 py-1 bg-white"
         >
-          <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+          <div
+            className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider truncate"
+            title={u.name}
+          >
             {u.name}
           </div>
 
@@ -450,7 +471,11 @@ export default function UsersPanel({
             Cargando usuarios desde el servidor...
           </div>
         ) : (
-          <Table headers={["Nombre", "Correo", "Rol", "Ubicación", "Estado", "Acciones"]} rows={rows} />
+          <Table
+            headers={["Nombre", "Correo", "Rol", "Ubicación", "Estado", "Acciones"]}
+            rows={rows}
+            containerClassName="overflow-visible"
+          />
         )}
       </Card>
 

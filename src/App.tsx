@@ -14,6 +14,22 @@ import { getCurrentUser, logout } from "./services/auth";
 import { supabase } from "./services/supabase";
 import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
+import { getProductos } from "./services/productos";
+import { Card, SectionHeader } from "./components/ui";
+
+function NoLocationNotice({ message }: { message: string }) {
+  return (
+    <div>
+      <SectionHeader title="Sin ubicación asignada" subtitle="Todavía no puedes registrar operaciones" />
+      <Card className="p-6">
+        <p className="text-sm text-[var(--text)]">{message}</p>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          Pide a un administrador que te asigne una ubicación desde la sección Usuarios.
+        </p>
+      </Card>
+    </div>
+  );
+}
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -76,12 +92,14 @@ export default function App() {
     if (!currentUser) return;
     async function loadAuxData() {
       try {
-        const [storesData, dcsData] = await Promise.all([
+        const [storesData, dcsData, productsData] = await Promise.all([
           getTiendas().catch(() => []),
           getCentrosDistribucion().catch(() => []),
+          getProductos().catch(() => []),
         ]);
         setStores(storesData || []);
         setDCs(dcsData || []);
+        setProducts(productsData || []);
       } catch (err) {
         console.warn("Aviso al cargar sucursales:", err);
       }
@@ -120,6 +138,7 @@ export default function App() {
     setStores([]);
     setDCs([]);
     setUsers([]);
+    setProducts([]);
   };
 
   const handleUpdateUsers = (newUsers: User[]) => {
@@ -191,25 +210,37 @@ export default function App() {
       case "dcs":
         return <DCsPanel stores={stores} />;
       case "sale":
+        if (!storeId) {
+          return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
+        }
         return <RegisterSale storeId={storeId} products={products} />;
       case "inventory":
+        if (!storeId) {
+          return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
+        }
         return (
           <InventoryView
-            items={[]}
+            source={{ tipo: "tienda", id: storeId }}
             title="Inventario de mi tienda"
             subtitle={`${stores.find((s) => s.id === storeId)?.name ?? "Tienda"} · Solo consulta`}
           />
         );
       case "dc-inventory":
+        if (!dcId) {
+          return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
+        }
         return (
           <InventoryView
-            items={[]}
+            source={{ tipo: "cd", id: dcId }}
             title="Inventario de mi centro de distribución"
             subtitle={`${dcs.find((d) => d.id === dcId)?.name ?? "CD"} · Solo consulta`}
           />
         );
       case "dc-receipt":
-        return <RegisterReceipt dcId={dcId} />;
+        if (!dcId) {
+          return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
+        }
+        return <RegisterReceipt dcId={dcId} products={products} />;
       default:
         return null;
     }

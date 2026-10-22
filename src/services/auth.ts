@@ -1,7 +1,6 @@
 import { supabase } from "./supabase";
 import type { Asignacion, User, Role } from "../types";
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+import { apiFetch, ApiError } from "./http";
 
 export interface BackendAsignacion {
   tipo: "TIENDA" | "CD" | string;
@@ -64,22 +63,17 @@ export function mapBackendUserToFrontend(backendUser: BackendUsuario): User {
 }
 
 export async function fetchUsuarioActual(token: string): Promise<BackendUsuario | null> {
-  const response = await fetch(`${API_BASE_URL}/api/usuarios/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
+  try {
+    return await apiFetch<BackendUsuario>("/api/usuarios/me", {
+      token,
+      fallback: "No autorizado",
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
       throw new Error("El usuario no está registrado en el sistema. Contacta al administrador.");
     }
-    const errorText = await response.text();
-    throw new Error(`Error del servidor (${response.status}): ${errorText || "No autorizado"}`);
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function login(

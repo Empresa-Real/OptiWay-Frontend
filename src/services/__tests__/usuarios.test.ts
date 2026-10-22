@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   mapFrontendRoleToBackend,
-  cleanErrorMessage,
   createUsuario,
   getUsuarios,
   getUsuarioById,
   updateRolUsuario,
   deleteUsuario,
-  ApiError,
 } from "../usuarios";
+import { ApiError } from "../http";
 import { mapBackendRoleToFrontend } from "../auth";
 import { supabase } from "../supabase";
 
@@ -47,72 +46,6 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
       expect(mapBackendRoleToFrontend("ENCARGADO_TIENDA")).toBe("store");
       expect(mapBackendRoleToFrontend("ENCARGADO_CD")).toBe("dc");
       expect(mapBackendRoleToFrontend("PLANIFICADOR")).toBe("planner");
-    });
-  });
-
-  describe("Sanitización y Limpieza de Errores (cleanErrorMessage)", () => {
-    it("debe traducir el error de límite de correos (429) de Supabase Auth a un mensaje amigable", () => {
-      const rawError =
-        'Error de Supabase Auth (429 TOO_MANY_REQUESTS): {"code":429,"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}';
-
-      const cleaned = cleanErrorMessage(rawError);
-
-      expect(cleaned).toContain("límite de correos de invitación");
-      expect(cleaned).not.toContain("{");
-      expect(cleaned).not.toContain("}");
-      expect(cleaned).not.toContain("429 TOO_MANY_REQUESTS");
-    });
-
-    it("debe extraer mensajes legibles cuando el backend devuelve JSON incrustado", () => {
-      const jsonError = 'Error del servidor: {"error": "El correo ya está registrado en el sistema"}';
-      const cleaned = cleanErrorMessage(jsonError);
-
-      expect(cleaned).toBe("El correo electrónico ya se encuentra registrado en el sistema.");
-      expect(cleaned).not.toContain("{");
-      expect(cleaned).not.toContain("}");
-    });
-
-    it("debe retornar mensaje amigable para 409 (Conflicto / Duplicado)", () => {
-      const cleaned = cleanErrorMessage("", 409);
-      expect(cleaned).toBe("El correo electrónico ya se encuentra registrado en el sistema.");
-    });
-
-    it("debe retornar mensaje amigable para 403 (Acceso Denegado)", () => {
-      const cleaned = cleanErrorMessage("", 403);
-      expect(cleaned).toBe("No tienes permisos de administrador para realizar esta operación.");
-    });
-
-    it("debe procesar el nuevo formato estructurado del backend con 'detalle' y 'status'", () => {
-      const backendError = {
-        error: "Error de respuesta en Supabase Auth",
-        status: 429,
-        detalle: {
-          code: 429,
-          error_code: "over_email_send_rate_limit",
-          msg: "email rate limit exceeded",
-        },
-      };
-
-      const cleaned = cleanErrorMessage(backendError.error, 502, backendError);
-
-      expect(cleaned).toBe(
-        "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario."
-      );
-      expect(cleaned).not.toContain("{");
-      expect(cleaned).not.toContain("}");
-    });
-
-    it("debe traducir validaciones de campos del backend (nombre, email, rol)", () => {
-      expect(cleanErrorMessage("El nombre del usuario no puede estar vacio")).toBe(
-        "El nombre del usuario no puede estar vacío."
-      );
-      expect(cleanErrorMessage("El email del usuario no puede estar vacio")).toBe(
-        "El correo electrónico del usuario no puede estar vacío."
-      );
-      expect(cleanErrorMessage("El rol no es valido")).toBe("El rol seleccionado no es válido.");
-      expect(cleanErrorMessage("El correo ya esta registrado")).toBe(
-        "El correo electrónico ya se encuentra registrado en el sistema."
-      );
     });
   });
 
@@ -167,9 +100,12 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
     });
 
     it("debe lanzar ApiError con mensaje limpio si el backend responde con error de límite de Supabase (429)", async () => {
+      // Formato A documentado: `message` en español + `code` del proveedor.
       const errorJson = {
-        error:
-          'Error de Supabase Auth (429 TOO_MANY_REQUESTS): {"code":429,"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}',
+        error: "email rate limit exceeded",
+        message:
+          "Se ha superado el límite de correos de invitación por hora de Supabase Auth. Por favor espera unos minutos antes de registrar otro usuario.",
+        code: 429,
       };
 
       vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
@@ -193,7 +129,7 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
         ok: false,
         status: 409,
         statusText: "Conflict",
-        text: async () => JSON.stringify({ error: "El correo ya existe" }),
+        text: async () => JSON.stringify({ message: "El correo electrónico ya se encuentra registrado en el sistema." }),
       } as Response);
 
       await expect(

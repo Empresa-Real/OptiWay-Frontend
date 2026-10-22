@@ -58,7 +58,7 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
         ok: false,
         status: 401,
         statusText: "Unauthorized",
-        text: async () => JSON.stringify({ error: "Sesión no válida" }),
+        text: async () => JSON.stringify({ message: "Sesión no válida" }),
       } as Response);
 
       await expect(getTiendas()).rejects.toThrow(/sesión no válida/i);
@@ -113,7 +113,7 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "El nombre de la tienda es obligatorio." }),
+        text: async () => JSON.stringify({ message: "El nombre de la tienda es obligatorio." }),
       } as Response);
 
       await expect(
@@ -130,7 +130,7 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "La dirección es obligatoria." }),
+        text: async () => JSON.stringify({ message: "La dirección es obligatoria." }),
       } as Response);
 
       await expect(
@@ -232,7 +232,7 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
         statusText: "Bad Request",
         text: async () =>
           JSON.stringify({
-            error: "Solo se puede asignar una tienda a un usuario con rol Encargado de tienda (Rol actual: ADMINISTRADOR).",
+            message: "Solo se puede asignar una tienda a un usuario con rol Encargado de tienda (Rol actual: ADMINISTRADOR).",
           }),
       } as Response);
 
@@ -246,7 +246,7 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        text: async () => JSON.stringify({ error: "La tienda no existe." }),
+        text: async () => JSON.stringify({ message: "La tienda no existe." }),
       } as Response);
 
       await expect(asignarEncargadoTienda(999, 1)).rejects.toThrow(

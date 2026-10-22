@@ -60,19 +60,38 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 ---
 
 ## 5. Catálogo de Productos (`producto-controller`)
-- [ ] `GET /api/productos`
-- [ ] `POST /api/productos`
-- [ ] `PUT /api/productos/{id}`
-- [ ] `PATCH /api/productos/{id}/estado`
+- [x] `GET /api/productos`
+  - *Función frontend:* `getProductos()` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx) (Listado conectado al backend con botón Actualizar)
+- [x] `POST /api/productos`
+  - *Función frontend:* `createProducto({ identificador, nombre, categoria, price, unit })` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Modal de crear producto en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx) con control de errores JSON
+- [x] `PATCH /api/productos/{id}`
+  - *Función frontend:* `updateProducto(id, { nombre, categoria, price, unit })` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Modal de editar producto en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx)
+- [x] `PATCH /api/productos/{id}/estado`
+  - *Función frontend:* `cambiarEstadoProducto(id, activo)` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Botones Desactivar / Reactivar en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx)
 
 ---
 
 ## 6. Inventario (`inventario-controller`)
-- [ ] `GET /api/inventario` (Inventario de tienda)
-- [ ] `GET /api/inventario/centro-distribucion` (Inventario de CD)
+- [x] `GET /api/inventario` (Inventario de tienda)
+  - *Función frontend:* `getInventarioTienda({ tiendaId, nombre?, categoria?, productoId? })` en [`src/services/inventario.ts`](./src/services/inventario.ts)
+  - *Vista:* [`src/pages/shared/InventoryView.tsx`](./src/pages/shared/InventoryView.tsx) (listado conectado al backend con búsqueda)
+- [x] `GET /api/inventario/centro-distribucion` (Inventario de CD)
+  - *Función frontend:* `getInventarioCD({ centroDistribucionId, nombre?, categoria?, productoId? })` en [`src/services/inventario.ts`](./src/services/inventario.ts)
+  - *Vista:* [`src/pages/shared/InventoryView.tsx`](./src/pages/shared/InventoryView.tsx) (listado conectado al backend con búsqueda)
 
 ---
 
-## 7. Operaciones y Movimientos (`ingreso-mercancia-controller` & `venta-controller`)
-- [ ] `POST /api/ingresos-mercancia` (Recepción de mercancía en CD)
-- [ ] `POST /api/ventas` (Registro de venta en tienda)
+## 7. Operaciones y Movimientos (`TiendaController` & `CentroDistribucionController`)
+- [x] `POST /api/centros-distribucion/{id}/ingresos` (Recepción de mercancía en CD)
+  - *Alias corto:* `POST /api/cd/{id}/ingresos`
+  - *Función frontend:* `registrarIngreso({ centroDistribucionId, productoId, quantity, origin })` en [`src/services/ingresoMercancia.ts`](./src/services/ingresoMercancia.ts)
+  - *Body:* `{ productoId, cantidad, origen }` — el id del CD viaja en la URL
+  - *Vista:* [`src/pages/dc/RegisterReceipt.tsx`](./src/pages/dc/RegisterReceipt.tsx) (formulario conectado al backend con control de errores)
+- [x] `POST /api/tiendas/{id}/ventas` (Registro de venta en tienda)
+  - *Función frontend:* `registrarVenta({ tiendaId, productoId, quantity, fechaHora? })` en [`src/services/ventas.ts`](./src/services/ventas.ts)
+  - *Body:* `{ productoId, cantidad, fechaHora }` — el id de la tienda viaja en la URL
+  - *Vista:* [`src/pages/store/RegisterSale.tsx`](./src/pages/store/RegisterSale.tsx) (formulario conectado al backend con control de errores)

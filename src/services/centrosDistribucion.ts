@@ -1,7 +1,5 @@
 import type { DC } from "../types";
-import { supabase } from "./supabase";
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+import { apiFetch, type ErrorTranslations } from "./http";
 
 export interface BackendCentroDistribucion {
   id: number;
@@ -13,20 +11,28 @@ export interface BackendCentroDistribucion {
   tiendasAbastecidasIds?: number[];
 }
 
-async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || "";
-}
+const CD_ERRORS: ErrorTranslations = [
+  ["El nombre del centro de distribución es obligatorio", "El nombre del centro de distribución es obligatorio."],
+  ["La dirección es obligatoria", "La dirección del centro de distribución es obligatoria."],
+  ["La direccion es obligatoria", "La dirección del centro de distribución es obligatoria."],
+  ["La capacidad es obligatoria", "La capacidad del centro de distribución es obligatoria."],
+  [
+    "Solo se puede asignar un centro de distribución a un usuario con rol Encargado de centro de distribución",
+    "Solo se puede asignar como encargado a un usuario con rol 'Encargado de CD'.",
+  ],
+];
 
-export function mapBackendCDToFrontend(backendCD: any): DC {
+const CD_FORBIDDEN = "No tienes permisos de administrador para gestionar centros de distribución.";
+
+export function mapBackendCDToFrontend(backendCD: BackendCentroDistribucion): DC {
   return {
     id: backendCD.id,
-    name: backendCD.nombre || backendCD.name || "CD",
-    address: backendCD.direccion || backendCD.address || "",
-    capacity: backendCD.capacidad ?? backendCD.capacity ?? 0,
-    coverage: backendCD.tiendasAbastecidasIds || backendCD.coverage || [],
+    name: backendCD.nombre,
+    address: backendCD.direccion,
+    capacity: backendCD.capacidad ?? 0,
+    coverage: backendCD.tiendasAbastecidasIds ?? [],
     status: "active",
-    encargadoId: backendCD.encargadoId,
+    encargadoId: backendCD.encargadoId ?? undefined,
   };
 }
 
@@ -35,23 +41,13 @@ export function mapBackendCDToFrontend(backendCD: any): DC {
  * Endpoint: GET /api/centros-distribucion
  */
 export async function getCentrosDistribucion(): Promise<DC[]> {
-  try {
-    const token = await getAuthToken();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+  const data = await apiFetch<BackendCentroDistribucion[]>("/api/centros-distribucion", {
+    fallback: "No se pudieron obtener los centros de distribución",
+    errors: CD_ERRORS,
+    forbidden: CD_FORBIDDEN,
+  });
 
-    const response = await fetch(`${API_BASE_URL}/api/centros-distribucion`, { headers });
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: No se pudieron obtener los centros de distribución`);
-    }
-    const data: any[] = await response.json();
-    return data.map(mapBackendCDToFrontend);
-  } catch (error) {
-    console.warn("Aviso al conectar con /api/centros-distribucion:", error);
-    return [];
-  }
+  return data.map(mapBackendCDToFrontend);
 }
 
 /**
@@ -64,36 +60,20 @@ export async function createCentroDistribucion(data: {
   capacity: number;
   coverage: number[];
 }): Promise<DC> {
-  const token = await getAuthToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const body = {
-    nombre: data.name.trim(),
-    direccion: data.address.trim(),
-    capacidad: data.capacity,
-    encargadoId: null,
-    tiendasAbastecidasIds: data.coverage || [],
-  };
-
-  const response = await fetch(`${API_BASE_URL}/api/centros-distribucion`, {
+  const created = await apiFetch<BackendCentroDistribucion>("/api/centros-distribucion", {
     method: "POST",
-    headers,
-    body: JSON.stringify(body),
+    body: {
+      nombre: data.name.trim(),
+      direccion: data.address.trim(),
+      capacidad: data.capacity,
+      encargadoId: null,
+      tiendasAbastecidasIds: data.coverage || [],
+    },
+    fallback: "No se pudo crear el centro de distribución",
+    errors: CD_ERRORS,
+    forbidden: CD_FORBIDDEN,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const errorMsg = errorData?.message || errorData?.error || errorData?.detalle || `Error ${response.status}: No se pudo crear el centro de distribución`;
-    const err: any = new Error(errorMsg);
-    err.status = response.status;
-    err.data = errorData;
-    throw err;
-  }
-
-  const created = await response.json();
   return mapBackendCDToFrontend(created);
 }
 
@@ -105,27 +85,13 @@ export async function updateEncargadoCentroDistribucion(
   id: number,
   encargadoId: number | string
 ): Promise<DC> {
-  const token = await getAuthToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/centros-distribucion/${id}/encargado`, {
+  const updated = await apiFetch<BackendCentroDistribucion>(`/api/centros-distribucion/${id}/encargado`, {
     method: "PUT",
-    headers,
-    body: JSON.stringify({ encargadoId: Number(encargadoId) }),
+    body: { encargadoId: Number(encargadoId) },
+    fallback: "No se pudo actualizar el encargado",
+    errors: CD_ERRORS,
+    forbidden: CD_FORBIDDEN,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const errorMsg = errorData?.message || errorData?.error || errorData?.detalle || `Error ${response.status}: No se pudo actualizar el encargado`;
-    const err: any = new Error(errorMsg);
-    err.status = response.status;
-    err.data = errorData;
-    throw err;
-  }
-
-  const updated = await response.json();
   return mapBackendCDToFrontend(updated);
 }

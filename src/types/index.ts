@@ -24,6 +24,7 @@ export interface User {
 
 export interface Product {
   id: string;
+  identificador: string;
   name: string;
   category: string;
   price: number;
@@ -54,6 +55,9 @@ export interface InventoryItem {
   productId: string;
   quantity: number;
   minStock: number;
+  nombreProducto?: string;
+  categoriaProducto?: string;
+  stockBajo?: boolean;
 }
 
 export interface SaleRecord {

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { SaleRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
+import { registrarVenta } from "../../services/ventas";
 
 export default function RegisterSale({
   storeId,
-  products,
+  products: initialProducts,
 }: {
   storeId: number;
   products: Product[];
@@ -12,14 +13,39 @@ export default function RegisterSale({
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [form, setForm] = useState({ productId: "", quantity: "", date: new Date().toISOString().slice(0, 16) });
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const products = initialProducts;
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.productId || !form.quantity) return;
-    setSales((prev) => [...prev, { id: Date.now(), productId: form.productId, quantity: Number(form.quantity), date: form.date, storeId }]);
-    setForm({ productId: "", quantity: "", date: new Date().toISOString().slice(0, 16) });
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 3000);
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const created = await registrarVenta({
+        tiendaId: storeId,
+        productoId: form.productId,
+        quantity: Number(form.quantity),
+        fechaHora: form.date,
+      });
+
+      setSales((prev) => [...prev, {
+        id: created.id,
+        productId: created.productId,
+        quantity: created.quantity,
+        date: created.date,
+        storeId: created.storeId,
+      }]);
+      setForm({ productId: "", quantity: "", date: new Date().toISOString().slice(0, 16) });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err?.message || "Error al registrar la venta");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? id;
@@ -34,7 +60,7 @@ export default function RegisterSale({
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Label>Producto</Label>
-              <Select value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })} required>
+              <Select value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })} required disabled={submitting}>
                 <option value="">Selecciona un producto…</option>
                 {activeProducts.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -45,11 +71,11 @@ export default function RegisterSale({
             </div>
             <div>
               <Label>Cantidad</Label>
-              <Input type="number" min="1" placeholder="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
+              <Input type="number" min="1" placeholder="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required disabled={submitting} />
             </div>
             <div>
               <Label>Fecha y hora</Label>
-              <Input type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <Input type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} disabled={submitting} />
             </div>
             {success && (
               <div className="flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
@@ -57,7 +83,17 @@ export default function RegisterSale({
                 Venta registrada correctamente
               </div>
             )}
-            <Btn type="submit">Registrar venta</Btn>
+            {error && (
+              <div className="flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                  <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2" />
+                  <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2" />
+                </svg>
+                {error}
+              </div>
+            )}
+            <Btn type="submit" disabled={submitting}>{submitting ? "Registrando..." : "Registrar venta"}</Btn>
           </form>
         </Card>
 

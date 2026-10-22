@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import type { Store } from "../../types";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getTiendas, createTienda } from "../../services/tiendas";
-import { cleanErrorMessage } from "../../services/usuarios";
 
 export default function StoresPanel() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -47,7 +46,7 @@ export default function StoresPanel() {
       setShowCreate(false);
     } catch (err: any) {
       console.error("Error al crear tienda:", err?.data || err);
-      setError(cleanErrorMessage(err?.message || "Error al crear la tienda en el servidor.", err?.status, err?.data));
+      setError(err?.message || "Error al crear la tienda en el servidor.");
     } finally {
       setSubmitting(false);
     }
