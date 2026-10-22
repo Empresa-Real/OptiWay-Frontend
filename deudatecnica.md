@@ -119,6 +119,7 @@ Commit `5e3f18e`. Antes cada servicio copiaba su propio `API_BASE_URL`, `getAuth
 | 3 precedencias de error distintas | 1: `message` → `code` (ver §2.2) |
 
 - Las traducciones de dominio son datos (`ErrorTranslations`), no cadenas de `else if`.
+- `buildUrl` valida que el endpoint sea una ruta relativa: evita mandar el token a otro host.
 - El 403 tiene un mensaje por servicio (`forbidden`).
 - `centrosDistribucion` ya no asigna `detalle` directo (se acabó el `[object Object]`).
 - `getCentrosDistribucion` propaga el error; `DCsPanel` lo muestra.
@@ -314,6 +315,7 @@ permanece sin commitear (no lo generó este trabajo). Definir si se descarta o s
 
 | Commit | Qué resolvió |
 |---|---|
+| `ae438fd` | `buildUrl` fuera del `try` de `fetch`: un endpoint inválido ya no se disfraza de fallo de red |
 | `7705b7d` | Cobertura de `buildUrl` (barras, encoding, `0`/`false`, rutas absolutas) y del header `Authorization` |
 | `1053502` | Eliminado `cleanErrorMessage` (sin uso tras la política de mensajes) y sus 6 tests |
 | `f68f12b` | Política de errores: `message` o `Código de error: {code/status}`; `error` nunca se muestra |
