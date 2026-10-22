@@ -226,7 +226,7 @@ export default function App() {
           />
         );
       case "dc-receipt":
-        return <RegisterReceipt dcId={dcId} />;
+        return <RegisterReceipt dcId={dcId} products={products} />;
       default:
         return null;
     }

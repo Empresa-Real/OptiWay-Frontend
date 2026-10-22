@@ -1,42 +1,21 @@
-import { useState, useEffect } from "react";
-import type { ReceiptRecord } from "../../types";
+import { useState } from "react";
+import type { ReceiptRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
-import { supabase } from "../../services/supabase";
 import { registrarIngreso } from "../../services/ingresoMercancia";
 import { cleanErrorMessage } from "../../services/usuarios";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
-
-export default function RegisterReceipt({ dcId }: { dcId: number }) {
+export default function RegisterReceipt({
+  dcId,
+  products,
+}: {
+  dcId: number;
+  products: Product[];
+}) {
   const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
   const [form, setForm] = useState({ productId: "", quantity: "", origin: "Proveedor" });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const token = data.session?.access_token;
-        if (!token) return;
-        const response = await fetch(`${API_BASE_URL}/api/productos`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setProducts(data.map((p: any) => ({ id: String(p.id), name: p.nombre })));
-        }
-      } catch (err) {
-        console.warn("No se pudieron cargar los productos:", err);
-      }
-    };
-    fetchProducts();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
