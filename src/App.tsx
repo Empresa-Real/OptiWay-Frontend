@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Role, Product, Store, DC } from "./types";
+import type { User, UserRole, Product, Store, DC } from "./types";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -16,6 +16,30 @@ import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
 import { getProductos } from "./services/productos";
 import { Card, SectionHeader } from "./components/ui";
+
+const DEFAULT_SCREENS: Record<UserRole, string> = {
+  admin: "users",
+  store: "sale",
+  dc: "dc-inventory",
+  planner: "planner-pending",
+};
+
+/** Pantalla de inicio por rol. `null` si el rol no tiene una asignada. */
+const defaultScreen = (role: UserRole): string | null => DEFAULT_SCREENS[role] ?? null;
+
+function ModulePending({ message }: { message: string }) {
+  return (
+    <div>
+      <SectionHeader title="Módulo en construcción" subtitle="Todavía no está disponible" />
+      <Card className="p-6">
+        <p className="text-sm text-[var(--text)]">{message}</p>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          Cuando esté disponible vas a poder acceder desde el menú lateral.
+        </p>
+      </Card>
+    </div>
+  );
+}
 
 function NoLocationNotice({ message }: { message: string }) {
   return (
@@ -51,12 +75,6 @@ export default function App() {
     );
   });
 
-  const defaultScreen = (role: Role) => {
-    if (role === "admin") return "users";
-    if (role === "store") return "sale";
-    return "dc-inventory";
-  };
-
   useEffect(() => {
     let isMounted = true;
     async function restoreSession() {
@@ -64,7 +82,8 @@ export default function App() {
         const user = await getCurrentUser();
         if (isMounted && user && user.role !== "planner") {
           setCurrentUser(user);
-          setScreen(defaultScreen(user.role as Role));
+          const target = defaultScreen(user.role);
+          if (target) setScreen(target);
         }
       } catch (err) {
         console.error("Error al restaurar sesión previa:", err);
@@ -114,7 +133,8 @@ export default function App() {
       const user = await getCurrentUser();
       if (user && user.role !== "planner") {
         setCurrentUser(user);
-        setScreen(defaultScreen(user.role as Role));
+        const target = defaultScreen(user.role);
+        if (target) setScreen(target);
       }
     } catch (err) {
       console.error("Error al obtener usuario tras configurar contraseña:", err);
@@ -124,7 +144,8 @@ export default function App() {
   const handleLogin = (user: User) => {
     if (user.role === "planner") return;
     setCurrentUser(user);
-    setScreen(defaultScreen(user.role as Role));
+    const target = defaultScreen(user.role);
+    if (target) setScreen(target);
   };
 
   const handleLogout = async () => {
@@ -179,7 +200,7 @@ export default function App() {
     return <Login onLogin={handleLogin} users={users} />;
   }
 
-  const role = currentUser.role as Role;
+  const role = currentUser.role;
 
   const asignacion = currentUser.asignacion;
 
@@ -241,6 +262,8 @@ export default function App() {
           return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
         }
         return <RegisterReceipt dcId={dcId} products={products} />;
+      case "planner-pending":
+        return <ModulePending message="El módulo del Planificador todavía no tiene pantallas asignadas." />;
       default:
         return null;
     }

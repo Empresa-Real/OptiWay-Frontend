@@ -1,4 +1,5 @@
 export type Role = "admin" | "store" | "dc";
+export type UserRole = Role | "planner";
 
 export type AsignacionTipo = "tienda" | "cd";
 
@@ -17,7 +18,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: Role | "planner";
+  role: UserRole;
   asignacion: Asignacion | null;
   status: "active" | "inactive";
 }

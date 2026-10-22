@@ -1,4 +1,4 @@
-import type { Role } from "../types";
+import type { UserRole } from "../types";
 
 interface NavItem {
   id: string;
@@ -23,6 +23,20 @@ const NAV_DC: NavItem[] = [
   { id: "dc-inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
   { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7", integrated: true },
 ];
+
+const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
+  admin: NAV_ADMIN,
+  store: NAV_STORE,
+  dc: NAV_DC,
+  planner: [],
+};
+
+const LABEL_BY_ROLE: Record<UserRole, string> = {
+  admin: "Administrador",
+  store: "Encargado de tienda",
+  dc: "Encargado de CD",
+  planner: "Planificador",
+};
 
 function NavIcon({ d }: { d: string }) {
   return (
@@ -60,15 +74,16 @@ function Sidebar({
   locationName,
   onLogout,
 }: {
-  role: Role;
+  role: UserRole;
   screen: string;
   setScreen: (s: string) => void;
   userName: string;
   locationName: string;
   onLogout: () => void;
 }) {
-  const navItems = role === "admin" ? NAV_ADMIN : role === "store" ? NAV_STORE : NAV_DC;
-  const roleLabel = role === "admin" ? "Administrador" : role === "store" ? "Encargado de tienda" : "Encargado de CD";
+  // Sin fallback: un rol no mapeado no hereda el menú de otro.
+  const navItems = NAV_BY_ROLE[role] ?? [];
+  const roleLabel = LABEL_BY_ROLE[role] ?? "";
 
   return (
     <aside
