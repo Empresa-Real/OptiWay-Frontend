@@ -281,7 +281,7 @@ permanece sin commitear (no lo generó este trabajo). Definir si se descarta o s
 
 | Commit | Qué resolvió |
 |---|---|
-| `bd0c55d` | Contrato de error único (`BackendErrorResponse`): `code` = proveedor, `status` conservado; tests live fuera de `npm test` |
+| `7d8f320` | Contrato de error único (`BackendErrorResponse`): `code` = proveedor, `status` conservado; tests live fuera de `npm test` |
 | `b91f679` | `DCsPanel` con manejo de errores y botón Actualizar; logout limpia productos e inventario; se elimina el fetch duplicado de productos |
 | `5e3f18e` | `src/services/http.ts`: un solo `apiFetch`, token y parser de errores (−373 líneas netas) |
 | `26ddbf3` | `POST /api/tiendas/{id}/ventas` y `POST /api/centros-distribucion/{id}/ingresos`; tests de ambos servicios; `fechaHora` opcional |
