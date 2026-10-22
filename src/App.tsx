@@ -130,7 +130,7 @@ export default function App() {
     setProducts(newProducts);
   };
 
-  if (checkingSession) {
+  if (checkingSession && !isSettingPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--text-muted)" }}>
         <div className="flex items-center gap-2 text-sm">
@@ -162,18 +162,23 @@ export default function App() {
 
   const role = currentUser.role as Role;
 
+  const asignacion = currentUser.asignacion;
+
   const locationName = () => {
-    if (role === "admin") return "";
-    if (role === "store") {
-      const s = stores.find((x) => x.id === currentUser.locationId);
-      return s ? s.name : "";
+    if (role === "admin" || !asignacion) return "";
+    if (role === "store" && asignacion.tipo === "tienda") {
+      return asignacion.nombre ?? stores.find((x) => x.id === asignacion.id)?.name ?? "";
     }
-    const d = dcs.find((x) => x.id === currentUser.locationId);
-    return d ? d.name : "";
+    if (role === "dc" && asignacion.tipo === "cd") {
+      return asignacion.nombre ?? dcs.find((x) => x.id === asignacion.id)?.name ?? "";
+    }
+    return "";
   };
 
-  const storeId = currentUser.locationId ?? 1;
-  const dcId = currentUser.locationId ?? 1;
+  // Sin asignación no hay ubicación: antes se caía a la tienda 1, lo que mostraba
+  // datos de una sucursal ajena al encargado.
+  const storeId = asignacion?.tipo === "tienda" ? asignacion.id : 0;
+  const dcId = asignacion?.tipo === "cd" ? asignacion.id : 0;
 
   const renderScreen = () => {
     switch (screen) {

@@ -33,10 +33,10 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
     try {
       errorData = JSON.parse(text);
       if (errorData && typeof errorData === "object") {
-        if (typeof errorData.error === "string" && errorData.error.trim()) {
-          specificMessage = errorData.error.trim();
-        } else if (typeof errorData.message === "string" && errorData.message.trim()) {
+        if (typeof errorData.message === "string" && errorData.message.trim()) {
           specificMessage = errorData.message.trim();
+        } else if (typeof errorData.error === "string" && errorData.error.trim()) {
+          specificMessage = errorData.error.trim();
         }
       }
     } catch {

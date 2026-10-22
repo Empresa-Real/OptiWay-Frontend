@@ -1,11 +1,24 @@
 export type Role = "admin" | "store" | "dc";
 
+export type AsignacionTipo = "tienda" | "cd";
+
+/**
+ * Ubicación a la que está asignado un usuario con rol de encargado.
+ * El `tipo` es obligatorio: un id suelto no alcanza para saber si es
+ * una tienda o un centro de distribución.
+ */
+export interface Asignacion {
+  tipo: AsignacionTipo;
+  id: number;
+  nombre?: string;
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   role: Role | "planner";
-  locationId: number | null;
+  asignacion: Asignacion | null;
   status: "active" | "inactive";
 }
 
@@ -24,6 +37,7 @@ export interface Store {
   address: string;
   city: string;
   status: "active" | "inactive";
+  encargadoId?: number | null;
 }
 
 export interface DC {

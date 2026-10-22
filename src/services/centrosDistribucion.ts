@@ -86,7 +86,7 @@ export async function createCentroDistribucion(data: {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    const errorMsg = errorData?.detalle || errorData?.error || `Error ${response.status}: No se pudo crear el centro de distribución`;
+    const errorMsg = errorData?.message || errorData?.error || errorData?.detalle || `Error ${response.status}: No se pudo crear el centro de distribución`;
     const err: any = new Error(errorMsg);
     err.status = response.status;
     err.data = errorData;
@@ -119,7 +119,7 @@ export async function updateEncargadoCentroDistribucion(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    const errorMsg = errorData?.detalle || errorData?.error || `Error ${response.status}: No se pudo actualizar el encargado`;
+    const errorMsg = errorData?.message || errorData?.error || errorData?.detalle || `Error ${response.status}: No se pudo actualizar el encargado`;
     const err: any = new Error(errorMsg);
     err.status = response.status;
     err.data = errorData;
