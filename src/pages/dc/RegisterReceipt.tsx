@@ -18,8 +18,8 @@ export default function RegisterReceipt({ dcId }: { dcId: number }) {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.access_token;
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
         if (!token) return;
         const response = await fetch(`${API_BASE_URL}/api/productos`, {
           headers: {

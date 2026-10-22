@@ -109,7 +109,7 @@ export async function registrarIngreso(payload: RegistrarIngresoPayload): Promis
   const created: BackendIngresoMercancia = await response.json();
 
   return {
-    id: String(created.id),
+    id: created.id,
     productId: String(created.productoId),
     quantity: created.cantidad,
     origin: created.origen,
