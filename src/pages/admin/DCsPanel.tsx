@@ -1,16 +1,28 @@
 import { useState, useEffect } from "react";
 import type { DC, Store } from "../../types";
-import {
-  getCentrosDistribucion,
-  createCentroDistribucion,
-  updateEncargadoCentroDistribucion,
-} from "../../services/centrosDistribucion";
+import { getCentrosDistribucion, createCentroDistribucion } from "../../services/centrosDistribucion";
+import { cleanErrorMessage } from "../../services/http";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+
+function ErrorBanner({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div className="flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+      </svg>
+      <span>{message}</span>
+    </div>
+  );
+}
 
 export default function DCsPanel({ stores }: { stores: Store[] }) {
   const [dcs, setDCs] = useState<DC[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [showCreate, setShowCreate] = useState<boolean>(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<{ name: string; address: string; capacity: string; coverage: number[] }>({
     name: "",
     address: "",
@@ -18,40 +30,61 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
     coverage: [],
   });
 
-  useEffect(() => {
-    loadDCs();
-  }, []);
-
-  const loadDCs = async (): Promise<void> => {
-    setLoading(true);
+  const loadDCs = async (isInitial = false): Promise<void> => {
+    if (!isInitial) setRefreshing(true);
+    setError("");
     try {
       const data = await getCentrosDistribucion();
       setDCs(data);
-    } catch (error) {
-      console.warn("No se pudieron cargar los centros de distribución:", error);
+    } catch (err: any) {
+      console.warn("Aviso al consultar /api/centros-distribucion:", err?.message || err);
+      setError(
+        cleanErrorMessage(err?.message || "No se pudieron cargar los centros de distribución.", err?.status, err?.data)
+      );
     } finally {
-      setLoading(false);
+      if (isInitial) setInitialLoading(false);
+      else setRefreshing(false);
     }
   };
 
+  useEffect(() => {
+    loadDCs(true);
+  }, []);
+
   const handleCreate = async (): Promise<void> => {
-    if (!form.name) return;
+    if (!form.name.trim()) {
+      setError("El nombre del centro de distribución es obligatorio.");
+      return;
+    }
 
-    const newDC = await createCentroDistribucion({
-      name: form.name,
-      address: form.address,
-      capacity: Number(form.capacity),
-      coverage: form.coverage,
-    });
+    const capacity = Number(form.capacity);
+    if (!Number.isFinite(capacity) || capacity <= 0) {
+      setError("La capacidad debe ser mayor que cero.");
+      return;
+    }
 
-    setDCs((prev: DC[]) => [...prev, newDC]);
-    setForm({ name: "", address: "", capacity: "", coverage: [] });
-    setShowCreate(false);
-  };
+    setSubmitting(true);
+    setError("");
 
-  const handleAssignEncargado = async (dcId: number, encargadoId: number): Promise<void> => {
-    const updatedDC = await updateEncargadoCentroDistribucion(dcId, encargadoId);
-    setDCs((prev: DC[]) => prev.map((d: DC) => (d.id === dcId ? updatedDC : d)));
+    try {
+      const newDC = await createCentroDistribucion({
+        name: form.name,
+        address: form.address,
+        capacity,
+        coverage: form.coverage,
+      });
+
+      setDCs((prev) => [newDC, ...prev]);
+      setForm({ name: "", address: "", capacity: "", coverage: [] });
+      setShowCreate(false);
+    } catch (err: any) {
+      console.error("Error al crear centro de distribución:", err?.data || err);
+      setError(
+        cleanErrorMessage(err?.message || "Error al crear el centro de distribución.", err?.status, err?.data)
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleCoverage = (id: number): void => {
@@ -74,7 +107,7 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
     </Badge>,
   ]);
 
-  if (loading) {
+  if (initialLoading) {
     return <div className="p-4 text-sm text-[var(--text-muted)]">Cargando centros de distribución...</div>;
   }
 
@@ -83,14 +116,36 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
       <SectionHeader
         title="Centros de distribución"
         subtitle="Almacenes y zonas de cobertura"
-        action={<Btn onClick={() => setShowCreate(true)}>+ Crear CD</Btn>}
+        action={
+          <div className="flex gap-2">
+            <Btn variant="secondary" size="md" onClick={() => loadDCs()} disabled={refreshing}>
+              {refreshing ? "Actualizando..." : "Actualizar"}
+            </Btn>
+            <Btn size="md" onClick={() => { setShowCreate(true); setError(""); }}>
+              + Crear CD
+            </Btn>
+          </div>
+        }
       />
+
+      {!showCreate && (
+        <div className="mb-4">
+          <ErrorBanner message={error} />
+        </div>
+      )}
+
       <Card>
-        <Table headers={["Nombre", "Dirección", "Capacidad", "Cobertura", "Estado"]} rows={rows} />
+        {dcs.length === 0 ? (
+          <div className="py-12 text-center text-sm text-[var(--text-muted)]">
+            No hay centros de distribución registrados.
+          </div>
+        ) : (
+          <Table headers={["Nombre", "Dirección", "Capacidad", "Cobertura", "Estado"]} rows={rows} />
+        )}
       </Card>
 
       {showCreate && (
-        <Modal title="Crear centro de distribución" onClose={() => setShowCreate(false)}>
+        <Modal title="Crear centro de distribución" onClose={() => !submitting && setShowCreate(false)}>
           <div className="space-y-4">
             <div>
               <Label>Nombre</Label>
@@ -98,6 +153,8 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
                 placeholder="Ej. CD Sur"
                 value={form.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                disabled={submitting}
+                required
               />
             </div>
             <div>
@@ -106,15 +163,19 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
                 placeholder="Calle y número"
                 value={form.address}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, address: e.target.value })}
+                disabled={submitting}
               />
             </div>
             <div>
               <Label>Capacidad (unidades)</Label>
               <Input
                 type="number"
+                min="1"
                 placeholder="5000"
                 value={form.capacity}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, capacity: e.target.value })}
+                disabled={submitting}
+                required
               />
             </div>
             <div>
@@ -126,6 +187,7 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
                       type="checkbox"
                       checked={form.coverage.includes(s.id)}
                       onChange={() => toggleCoverage(s.id)}
+                      disabled={submitting}
                       className="accent-[var(--accent)]"
                     />
                     {s.name} — {s.city}
@@ -133,9 +195,16 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
                 ))}
               </div>
             </div>
+
+            <ErrorBanner message={error} />
+
             <div className="flex gap-2 pt-1">
-              <Btn onClick={handleCreate}>Crear CD</Btn>
-              <Btn variant="secondary" onClick={() => setShowCreate(false)}>Cancelar</Btn>
+              <Btn onClick={handleCreate} disabled={submitting}>
+                {submitting ? "Guardando..." : "Crear CD"}
+              </Btn>
+              <Btn variant="secondary" onClick={() => setShowCreate(false)} disabled={submitting}>
+                Cancelar
+              </Btn>
             </div>
           </div>
         </Modal>

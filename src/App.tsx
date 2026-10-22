@@ -152,6 +152,9 @@ export default function App() {
     setStores([]);
     setDCs([]);
     setUsers([]);
+    setProducts([]);
+    setInventoryStore([]);
+    setInventoryCD([]);
   };
 
   const handleUpdateUsers = (newUsers: User[]) => {

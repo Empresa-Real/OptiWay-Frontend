@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { Product, ProductEdit } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getProductos, createProducto, updateProducto, cambiarEstadoProducto } from "../../services/productos";
@@ -13,7 +13,9 @@ export default function ProductsPanel({
   onUpdateProducts: (products: Product[]) => void;
   currentUserName: string;
 }) {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  // La fuente de verdad es App (que ya carga el catálogo en loadAuxData).
+  // Antes había una copia local + un useEffect que repetía GET /api/productos.
+  const products = initialProducts;
   const [productEdits, setProductEdits] = useState<Record<string, ProductEdit[]>>({});
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -24,28 +26,21 @@ export default function ProductsPanel({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadProductos = async (isInitial = false) => {
-    if (!isInitial) setRefreshing(true);
+  const loadProductos = async () => {
+    setRefreshing(true);
     setError("");
     try {
       const data = await getProductos();
-      setProducts(data || []);
       onUpdateProducts(data || []);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/productos:", err?.message || err);
       setError(cleanErrorMessage(err?.message || "Error al cargar productos", err?.status, err?.data));
     } finally {
-      if (isInitial) setInitialLoading(false);
-      else setRefreshing(false);
+      setRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    loadProductos(true);
-  }, []);
 
   const filtered = useMemo(
     () =>
@@ -122,7 +117,6 @@ export default function ProductsPanel({
         const newProducts = products.map((p) =>
           p.id === editingProduct.id ? { ...updated, identificador: updated.identificador ?? editingProduct.identificador } : p
         );
-        setProducts(newProducts);
         onUpdateProducts(newProducts);
         setSuccessMessage("Producto actualizado");
       } else {
@@ -141,7 +135,6 @@ export default function ProductsPanel({
         });
 
         const newProducts = [created, ...products];
-        setProducts(newProducts);
         onUpdateProducts(newProducts);
         setSuccessMessage("Producto creado");
       }
@@ -169,7 +162,6 @@ export default function ProductsPanel({
       const newProducts = products.map((p) =>
         p.id === product.id ? { ...updated, identificador: updated.identificador ?? product.identificador } : p
       );
-      setProducts(newProducts);
       onUpdateProducts(newProducts);
       setSuccessMessage("Producto reactivado");
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -189,7 +181,6 @@ export default function ProductsPanel({
       const newProducts = products.map((p) =>
         p.id === showDeactivate.id ? { ...updated, identificador: updated.identificador ?? showDeactivate.identificador } : p
       );
-      setProducts(newProducts);
       onUpdateProducts(newProducts);
       setShowDeactivate(null);
       setSuccessMessage("Producto desactivado");
@@ -235,38 +226,36 @@ export default function ProductsPanel({
 
   return (
     <div>
-      {initialLoading ? null : (
-        <>
-          {error && (
-            <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2" />
-                <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              {error}
-            </div>
-          )}
-          {successMessage && (
-            <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              {successMessage}
-            </div>
-          )}
-          <SectionHeader
-            title="Catálogo de productos"
-            subtitle="Todos los artículos registrados en el sistema"
-            action={
-              <div className="flex gap-2">
-                <Btn variant="secondary" size="md" onClick={() => loadProductos(false)} disabled={refreshing}>
-                  {refreshing ? "Actualizando..." : "Actualizar"}
-                </Btn>
-                <Btn onClick={handleOpenCreate}>+ Crear producto</Btn>
-              </div>
-            }
-          />
+      {error && (
+        <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2" />
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2" />
+          </svg>
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          {successMessage}
+        </div>
+      )}
+      <SectionHeader
+        title="Catálogo de productos"
+        subtitle="Todos los artículos registrados en el sistema"
+        action={
+          <div className="flex gap-2">
+            <Btn variant="secondary" size="md" onClick={loadProductos} disabled={refreshing}>
+              {refreshing ? "Actualizando..." : "Actualizar"}
+            </Btn>
+            <Btn onClick={handleOpenCreate}>+ Crear producto</Btn>
+          </div>
+        }
+      />
       <div className="mb-4">
         <Input placeholder="Buscar por nombre o categoría…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -385,8 +374,6 @@ export default function ProductsPanel({
             </div>
           </div>
         </Modal>
-      )}
-        </>
       )}
 
 
