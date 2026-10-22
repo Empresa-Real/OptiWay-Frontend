@@ -71,5 +71,7 @@ campos. Es útil para dar feedback inmediato, pero conviene mantener alineados l
 
 ### 4.4 Lockfiles
 
-Conviven `package-lock.json` y `pnpm-lock.yaml`, mientras `package.json` declara pnpm como
-gestor. **Pendiente:** elegir un único lockfile y gestor de paquetes.
+Resuelto: **pnpm es el único gestor**. `package-lock.json` se eliminó y quedó en
+`.gitignore`; el único lockfile es `pnpm-lock.yaml`. En CI/Vercel se instala con
+`pnpm install --frozen-lockfile`, así que cualquier dependencia nueva debe agregarse con
+`corepack pnpm add` (actualiza el lockfile correcto).
