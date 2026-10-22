@@ -144,7 +144,7 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
         name: "Carlos Gómez",
         email: "carlos@empresa.com",
         role: "store",
-        locationId: null,
+        asignacion: null,
         status: "active",
       });
 
@@ -223,7 +223,49 @@ describe("Servicio de Usuarios (usuarios.ts)", () => {
 
       expect(usuarios).toHaveLength(2);
       expect(usuarios[0].role).toBe("admin");
+      expect(usuarios[0].asignacion).toBeNull();
       expect(usuarios[1].role).toBe("store");
+    });
+
+    it("debe exponer la asignación que devuelve el backend (tienda y CD)", async () => {
+      const mockList = [
+        {
+          id: 2,
+          authUserId: "uuid-2",
+          nombre: "Tienda Centro",
+          email: "tienda@empresa.com",
+          rol: "ENCARGADO_TIENDA",
+          asignacion: { tipo: "TIENDA", id: 3, nombre: "Sucursal Centro" },
+        },
+        {
+          id: 4,
+          authUserId: "uuid-4",
+          nombre: "Laura CD",
+          email: "laura@empresa.com",
+          rol: "ENCARGADO_CD",
+          asignacion: { tipo: "CD", id: 8, nombre: "CD Norte" },
+        },
+        {
+          id: 9,
+          authUserId: "uuid-9",
+          nombre: "Sin ubicación",
+          email: "nadie@empresa.com",
+          rol: "ENCARGADO_TIENDA",
+          asignacion: null,
+        },
+      ];
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockList,
+      } as Response);
+
+      const usuarios = await getUsuarios();
+
+      expect(usuarios[0].asignacion).toEqual({ tipo: "tienda", id: 3, nombre: "Sucursal Centro" });
+      expect(usuarios[1].asignacion).toEqual({ tipo: "cd", id: 8, nombre: "CD Norte" });
+      expect(usuarios[2].asignacion).toBeNull();
     });
 
     it("debe consultar un usuario por su ID", async () => {

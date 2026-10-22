@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input, Label, Btn } from "../components/ui";
-import { updatePassword } from "../services/auth";
+import { updatePassword, extractAuthTokens } from "../services/auth";
 
 export default function SetPassword({
   onSuccess,
@@ -14,9 +14,28 @@ export default function SetPassword({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isTokenInvalid, setIsTokenInvalid] = useState(false);
+  const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    const tokens = extractAuthTokens();
+    if (tokens.errorCode || tokens.errorDescription) {
+      setIsTokenInvalid(true);
+      setError(
+        tokens.errorDescription?.replace(/\+/g, " ") ||
+          "El enlace de invitación no es válido o ya ha expirado. Solicita una nueva invitación a tu administrador."
+      );
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevenir doble ejecución o reentrancia concurrente
+    if (isSubmittingRef.current || loading || !!success || isTokenInvalid) {
+      return;
+    }
+
     setError("");
     setSuccess("");
 
@@ -30,23 +49,28 @@ export default function SetPassword({
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
+
     try {
       const result = await updatePassword(password);
       if (result.success) {
-        setSuccess("Contraseña configurada con éxito. Redirigiendo...");
+        setSuccess("Contraseña configurada con éxito. Redirigiendo al sistema...");
         setTimeout(() => {
           onSuccess();
         }, 1200);
       } else {
+        isSubmittingRef.current = false;
         setError(result.error || "El enlace no es válido o ya expiró.");
       }
     } catch (err: any) {
+      isSubmittingRef.current = false;
       setError(err?.message || "El enlace no es válido o ya expiró.");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
@@ -106,7 +130,7 @@ export default function SetPassword({
                 }}
                 autoComplete="new-password"
                 minLength={8}
-                disabled={loading || !!success}
+                disabled={loading || !!success || isTokenInvalid}
                 required
               />
             </div>
@@ -123,7 +147,7 @@ export default function SetPassword({
                 }}
                 autoComplete="new-password"
                 minLength={8}
-                disabled={loading || !!success}
+                disabled={loading || !!success || isTokenInvalid}
                 required
               />
             </div>
@@ -146,7 +170,7 @@ export default function SetPassword({
               </div>
             )}
 
-            <Btn type="submit" size="md" disabled={loading || !!success} className="w-full justify-center">
+            <Btn type="submit" size="md" disabled={loading || !!success || isTokenInvalid} className="w-full justify-center">
               {loading ? "Guardando..." : "Guardar contraseña"}
             </Btn>
 

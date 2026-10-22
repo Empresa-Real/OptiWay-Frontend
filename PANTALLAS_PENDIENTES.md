@@ -5,7 +5,7 @@ Este documento detalla las pantallas y flujos identificados en el prototipo func
 ---
 
 ## 1. Pantalla de Configuración / Restablecimiento de Contraseña (`SetPassword`) — [COMPLETADA]
-- **Referencia backend:** `set-password.html`
+- **Ruta de redirección:** `https://opti-way-frontend.vercel.app/#access_token=...`
 - **Componente implementado:** [`src/pages/SetPassword.tsx`](./src/pages/SetPassword.tsx)
 - **Flujo:**
   - Cuando un usuario abre la aplicación con un token de invitación o recuperación en el fragmento hash (`#access_token=...&type=invite` o `type=recovery`), o se dispara el evento `PASSWORD_RECOVERY` de Supabase, la app muestra la pantalla para ingresar y confirmar la nueva contraseña (`updatePassword`).

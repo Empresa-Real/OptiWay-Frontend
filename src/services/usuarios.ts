@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { User, Role } from "../types";
-import { mapBackendRoleToFrontend, type BackendUsuario } from "./auth";
+import { mapBackendUserToFrontend, type BackendUsuario } from "./auth";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
@@ -165,10 +165,10 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
     try {
       errorData = JSON.parse(text);
       if (errorData && typeof errorData === "object") {
-        if (typeof errorData.error === "string" && errorData.error.trim()) {
-          specificMessage = errorData.error.trim();
-        } else if (typeof errorData.message === "string" && errorData.message.trim()) {
+        if (typeof errorData.message === "string" && errorData.message.trim()) {
           specificMessage = errorData.message.trim();
+        } else if (typeof errorData.error === "string" && errorData.error.trim()) {
+          specificMessage = errorData.error.trim();
         }
       }
     } catch {
@@ -235,14 +235,7 @@ export async function getUsuarios(): Promise<User[]> {
 
   const data: BackendUsuario[] = await response.json();
 
-  return data.map((u) => ({
-    id: u.id,
-    name: u.nombre || u.email.split("@")[0],
-    email: u.email,
-    role: mapBackendRoleToFrontend(u.rol),
-    locationId: null,
-    status: "active" as const,
-  }));
+  return data.map(mapBackendUserToFrontend);
 }
 
 /**
@@ -298,14 +291,7 @@ export async function createUsuario(payload: {
 
   const created: BackendUsuario = await response.json();
 
-  return {
-    id: created.id,
-    name: created.nombre || created.email.split("@")[0],
-    email: created.email,
-    role: mapBackendRoleToFrontend(created.rol),
-    locationId: null,
-    status: "active" as const,
-  };
+  return mapBackendUserToFrontend(created);
 }
 
 /**

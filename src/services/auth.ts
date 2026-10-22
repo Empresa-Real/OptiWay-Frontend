@@ -1,7 +1,13 @@
 import { supabase } from "./supabase";
-import type { User, Role } from "../types";
+import type { Asignacion, User, Role } from "../types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+export interface BackendAsignacion {
+  tipo: "TIENDA" | "CD" | string;
+  id: number;
+  nombre?: string | null;
+}
 
 export interface BackendUsuario {
   id: number;
@@ -10,6 +16,8 @@ export interface BackendUsuario {
   email: string;
   rol: "ADMINISTRADOR" | "ENCARGADO_TIENDA" | "ENCARGADO_CD" | "PLANIFICADOR" | string;
   creadoPor?: string | null;
+  /** Opcional hasta que el backend lo implemente. Ver docs/tickets/BACKEND-asignacion-usuario.md */
+  asignacion?: BackendAsignacion | null;
 }
 
 export function mapBackendRoleToFrontend(rol: string): Role | "planner" {
@@ -27,13 +35,30 @@ export function mapBackendRoleToFrontend(rol: string): Role | "planner" {
   }
 }
 
+/**
+ * Traduce la asignación del backend al modelo del frontend.
+ * Devuelve null si el backend no la envía o si el tipo no es reconocible.
+ */
+export function mapBackendAsignacion(asignacion?: BackendAsignacion | null): Asignacion | null {
+  if (!asignacion || asignacion.id == null) return null;
+
+  switch (asignacion.tipo) {
+    case "TIENDA":
+      return { tipo: "tienda", id: asignacion.id, nombre: asignacion.nombre ?? undefined };
+    case "CD":
+      return { tipo: "cd", id: asignacion.id, nombre: asignacion.nombre ?? undefined };
+    default:
+      return null;
+  }
+}
+
 export function mapBackendUserToFrontend(backendUser: BackendUsuario): User {
   return {
     id: backendUser.id,
     name: backendUser.nombre || backendUser.email.split("@")[0],
     email: backendUser.email,
     role: mapBackendRoleToFrontend(backendUser.rol),
-    locationId: 1, // Fallback a ubicación 1 por defecto para pantallas de tienda/CD
+    asignacion: mapBackendAsignacion(backendUser.asignacion),
     status: "active",
   };
 }
@@ -125,16 +150,77 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
+export interface HashAuthTokens {
+  accessToken: string | null;
+  refreshToken: string | null;
+  type: string | null;
+  errorCode: string | null;
+  errorDescription: string | null;
+}
+
+export function extractAuthTokens(): HashAuthTokens {
+  if (typeof window === "undefined") {
+    return { accessToken: null, refreshToken: null, type: null, errorCode: null, errorDescription: null };
+  }
+
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.substring(1) : window.location.hash;
+  const hashParams = new URLSearchParams(hash);
+
+  const search = window.location.search.startsWith("?") ? window.location.search.substring(1) : window.location.search;
+  const searchParams = new URLSearchParams(search);
+
+  return {
+    accessToken: hashParams.get("access_token") || searchParams.get("access_token"),
+    refreshToken: hashParams.get("refresh_token") || searchParams.get("refresh_token"),
+    type: hashParams.get("type") || searchParams.get("type"),
+    errorCode: hashParams.get("error_code") || searchParams.get("error_code") || hashParams.get("error") || searchParams.get("error"),
+    errorDescription: hashParams.get("error_description") || searchParams.get("error_description"),
+  };
+}
+
 export async function updatePassword(password: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const tokens = extractAuthTokens();
+
+    if (tokens.errorCode || tokens.errorDescription) {
+      const msg = tokens.errorDescription?.replace(/\+/g, " ") || "El enlace de invitación no es válido o ya ha expirado.";
+      return { success: false, error: msg };
+    }
+
+    // 1. Establecer sesión con los tokens del hash si están presentes
+    if (tokens.accessToken && tokens.refreshToken) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+      });
+
+      if (sessionError) {
+        return {
+          success: false,
+          error: "No se pudo verificar la invitación: " + sessionError.message,
+        };
+      }
+    }
+
+    // 2. Comprobar que la sesión esté lista antes de updateUser
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
       return { success: false, error: "El enlace no es válido o ya ha expirado." };
     }
 
-    const { error } = await supabase.auth.updateUser({ password });
+    // 3. Actualizar la contraseña
+    const { data, error } = await supabase.auth.updateUser({ password });
     if (error) {
       return { success: false, error: error.message };
+    }
+
+    if (!data?.user) {
+      return { success: false, error: "No se pudo actualizar la contraseña del usuario." };
+    }
+
+    // 4. Limpiar tokens del hash tras el éxito para evitar reprocesamiento
+    if (typeof window !== "undefined" && window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname);
     }
 
     return { success: true };
@@ -142,4 +228,5 @@ export async function updatePassword(password: string): Promise<{ success: boole
     return { success: false, error: err?.message || "Error al actualizar la contraseña." };
   }
 }
+
 
