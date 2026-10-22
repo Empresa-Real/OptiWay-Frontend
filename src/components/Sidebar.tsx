@@ -21,7 +21,7 @@ const NAV_STORE: NavItem[] = [
 
 const NAV_DC: NavItem[] = [
   { id: "dc-inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
-  { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7", integrated: false },
+  { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7", integrated: true },
 ];
 
 function NavIcon({ d }: { d: string }) {
