@@ -1,30 +1,26 @@
 import { useState, useMemo } from "react";
 import type { InventoryItem } from "../../types";
-import { seedProducts } from "../../data/seed";
-import { Badge, Input, Label, Card, SectionHeader, Table } from "../../components/ui";
+import { Badge, Input, Card, SectionHeader, Table } from "../../components/ui";
 
 export default function InventoryView({ items, title, subtitle }: { items: InventoryItem[]; title: string; subtitle?: string }) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() =>
     items.filter((item) => {
-      const p = seedProducts.find((x) => x.id === item.productId);
-      if (!p) return false;
       return (
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()) ||
+        item.nombreProducto?.toLowerCase().includes(search.toLowerCase()) ||
+        item.categoriaProducto?.toLowerCase().includes(search.toLowerCase()) ||
         item.productId.toLowerCase().includes(search.toLowerCase())
       );
     }), [items, search]);
 
   const rows = filtered.map((item) => {
-    const p = seedProducts.find((x) => x.id === item.productId);
-    const low = item.quantity < item.minStock;
+    const low = item.stockBajo ?? item.quantity < item.minStock;
     return [
-      <span className="font-medium">{p?.name ?? item.productId}</span>,
-      p?.category ?? "—",
+      <span className="font-medium">{item.nombreProducto ?? item.productId}</span>,
+      item.categoriaProducto ?? "—",
       <span className={`font-semibold ${low ? "text-[var(--warning)]" : "text-[var(--text)]"}`}>
-        {item.quantity} {p?.unit ?? "uds"}
+        {item.quantity} uds
         {low && (
           <span className="ml-2">
             <Badge variant="warning">Stock bajo</Badge>

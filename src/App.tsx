@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { User, Role, Product, Store, DC } from "./types";
+import type { User, Role, Product, Store, DC, InventoryItem } from "./types";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -15,6 +15,7 @@ import { supabase } from "./services/supabase";
 import { getTiendas } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
 import { getProductos } from "./services/productos";
+import { getInventarioTienda, getInventarioCD } from "./services/inventario";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -23,6 +24,8 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [dcs, setDCs] = useState<DC[]>([]);
+  const [inventoryStore, setInventoryStore] = useState<InventoryItem[]>([]);
+  const [inventoryCD, setInventoryCD] = useState<InventoryItem[]>([]);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isSettingPassword, setIsSettingPassword] = useState<boolean>(() => {
     const hash = window.location.hash;
@@ -85,6 +88,17 @@ export default function App() {
         setStores(storesData || []);
         setDCs(dcsData || []);
         setProducts(productsData || []);
+
+        const asignacion = currentUser?.asignacion;
+
+        if (asignacion?.tipo === "tienda") {
+          const inv = await getInventarioTienda({ tiendaId: asignacion.id }).catch(() => []);
+          setInventoryStore(inv || []);
+        }
+        if (asignacion?.tipo === "cd") {
+          const inv = await getInventarioCD({ centroDistribucionId: asignacion.id }).catch(() => []);
+          setInventoryCD(inv || []);
+        }
       } catch (err) {
         console.warn("Aviso al cargar sucursales:", err);
       }
@@ -198,7 +212,7 @@ export default function App() {
       case "inventory":
         return (
           <InventoryView
-            items={[]}
+            items={inventoryStore}
             title="Inventario de mi tienda"
             subtitle={`${stores.find((s) => s.id === storeId)?.name ?? "Tienda"} · Solo consulta`}
           />
@@ -206,7 +220,7 @@ export default function App() {
       case "dc-inventory":
         return (
           <InventoryView
-            items={[]}
+            items={inventoryCD}
             title="Inventario de mi centro de distribución"
             subtitle={`${dcs.find((d) => d.id === dcId)?.name ?? "CD"} · Solo consulta`}
           />

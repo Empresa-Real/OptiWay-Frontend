@@ -76,8 +76,12 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 ---
 
 ## 6. Inventario (`inventario-controller`)
-- [ ] `GET /api/inventario` (Inventario de tienda)
-- [ ] `GET /api/inventario/centro-distribucion` (Inventario de CD)
+- [x] `GET /api/inventario` (Inventario de tienda)
+  - *Función frontend:* `getInventarioTienda({ tiendaId, nombre?, categoria?, productoId? })` en [`src/services/inventario.ts`](./src/services/inventario.ts)
+  - *Vista:* [`src/pages/shared/InventoryView.tsx`](./src/pages/shared/InventoryView.tsx) (listado conectado al backend con búsqueda)
+- [x] `GET /api/inventario/centro-distribucion` (Inventario de CD)
+  - *Función frontend:* `getInventarioCD({ centroDistribucionId, nombre?, categoria?, productoId? })` en [`src/services/inventario.ts`](./src/services/inventario.ts)
+  - *Vista:* [`src/pages/shared/InventoryView.tsx`](./src/pages/shared/InventoryView.tsx) (listado conectado al backend con búsqueda)
 
 ---
 
