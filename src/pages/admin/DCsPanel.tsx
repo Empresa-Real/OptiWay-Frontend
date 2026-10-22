@@ -24,9 +24,14 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
 
   const loadDCs = async (): Promise<void> => {
     setLoading(true);
-    const data = await getCentrosDistribucion();
-    setDCs(data);
-    setLoading(false);
+    try {
+      const data = await getCentrosDistribucion();
+      setDCs(data);
+    } catch (error) {
+      console.warn("No se pudieron cargar los centros de distribución:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreate = async (): Promise<void> => {

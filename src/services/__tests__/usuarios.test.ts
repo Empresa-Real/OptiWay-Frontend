@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   mapFrontendRoleToBackend,
-  cleanErrorMessage,
   createUsuario,
   getUsuarios,
   getUsuarioById,
   updateRolUsuario,
   deleteUsuario,
-  ApiError,
 } from "../usuarios";
+import { ApiError, cleanErrorMessage } from "../http";
 import { mapBackendRoleToFrontend } from "../auth";
 import { supabase } from "../supabase";
 

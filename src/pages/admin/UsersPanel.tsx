@@ -6,8 +6,8 @@ import {
   createUsuario,
   updateRolUsuario,
   deleteUsuario,
-  cleanErrorMessage,
 } from "../../services/usuarios";
+import { cleanErrorMessage } from "../../services/http";
 import { getTiendas, asignarEncargadoTienda } from "../../services/tiendas";
 import { getCentrosDistribucion, updateEncargadoCentroDistribucion } from "../../services/centrosDistribucion";
 

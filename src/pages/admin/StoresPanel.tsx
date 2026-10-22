@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { Store } from "../../types";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getTiendas, createTienda } from "../../services/tiendas";
-import { cleanErrorMessage } from "../../services/usuarios";
+import { cleanErrorMessage } from "../../services/http";
 
 export default function StoresPanel() {
   const [stores, setStores] = useState<Store[]>([]);

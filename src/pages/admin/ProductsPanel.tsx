@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import type { Product, ProductEdit } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getProductos, createProducto, updateProducto, cambiarEstadoProducto } from "../../services/productos";
-import { cleanErrorMessage } from "../../services/usuarios";
+import { cleanErrorMessage } from "../../services/http";
 
 export default function ProductsPanel({
   products: initialProducts,

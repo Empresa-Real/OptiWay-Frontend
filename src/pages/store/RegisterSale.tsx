@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { SaleRecord, Product } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState } from "../../components/ui";
 import { registrarVenta } from "../../services/ventas";
-import { cleanErrorMessage } from "../../services/usuarios";
+import { cleanErrorMessage } from "../../services/http";
 
 export default function RegisterSale({
   storeId,
