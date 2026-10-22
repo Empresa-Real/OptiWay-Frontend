@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
-import type { Product, ProductEdit, InventoryItem, Store, DC } from "../../types";
-import { seedProducts, seedProductEdits, seedStoreInventory, seedDCInventory, seedStores, seedDCs } from "../../data/seed";
+import { useState, useMemo, useEffect } from "react";
+import type { Product, ProductEdit } from "../../types";
 import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { getProductos, createProducto, updateProducto, cambiarEstadoProducto } from "../../services/productos";
+import { cleanErrorMessage } from "../../services/usuarios";
 
 export default function ProductsPanel({
   products: initialProducts,
@@ -13,29 +14,54 @@ export default function ProductsPanel({
   currentUserName: string;
 }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [productEdits, setProductEdits] = useState<Record<string, ProductEdit[]>>(seedProductEdits);
+  const [productEdits, setProductEdits] = useState<Record<string, ProductEdit[]>>({});
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [form, setForm] = useState({ id: "", name: "", category: "", price: "", unit: "unidad" });
+  const [form, setForm] = useState({ id: "", identificador: "", name: "", category: "", price: "", unit: "unidad" });
   const [priceError, setPriceError] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState<Product | null>(null);
-  const [showStockWarning, setShowStockWarning] = useState<{ product: Product; locations: string[] } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadProductos = async (isInitial = false) => {
+    if (!isInitial) setRefreshing(true);
+    setError("");
+    try {
+      const data = await getProductos();
+      setProducts(data || []);
+      onUpdateProducts(data || []);
+    } catch (err: any) {
+      console.warn("Aviso al consultar /api/productos:", err?.message || err);
+      setError(cleanErrorMessage(err?.message || "Error al cargar productos", err?.status, err?.data));
+    } finally {
+      if (isInitial) setInitialLoading(false);
+      else setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProductos(true);
+  }, []);
 
   const filtered = useMemo(
     () =>
       products.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase())
+        p.category.toLowerCase().includes(search.toLowerCase()) ||
+        p.identificador.toLowerCase().includes(search.toLowerCase())
       ),
     [products, search]
   );
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
-    setForm({ id: "", name: "", category: "", price: "", unit: "unidad" });
+    setForm({ id: "", identificador: "", name: "", category: "", price: "", unit: "unidad" });
     setPriceError(false);
+    setError("");
     setShowModal(true);
   };
 
@@ -43,121 +69,136 @@ export default function ProductsPanel({
     setEditingProduct(product);
     setForm({
       id: product.id,
+      identificador: product.identificador,
       name: product.name,
       category: product.category,
       price: String(product.price),
       unit: product.unit,
     });
     setPriceError(false);
+    setError("");
     setShowModal(true);
   };
 
-  const handleSave = () => {
-    if (!form.id || !form.name || !form.category) return;
+  const handleSave = async () => {
+    if (!form.name || !form.category) return;
     const price = Number(form.price);
     if (price <= 0) {
       setPriceError(true);
       return;
     }
     setPriceError(false);
+    setSubmitting(true);
+    setError("");
 
-    if (editingProduct) {
-      // Track changes for edit history
-      const changes: string[] = [];
-      if (editingProduct.name !== form.name) changes.push(`Nombre: ${editingProduct.name} → ${form.name}`);
-      if (editingProduct.category !== form.category) changes.push(`Categoría: ${editingProduct.category} → ${form.category}`);
-      if (editingProduct.price !== price) changes.push(`Precio: ${editingProduct.price} → ${price}`);
-      if (editingProduct.unit !== form.unit) changes.push(`Unidad: ${editingProduct.unit} → ${form.unit}`);
+    try {
+      if (editingProduct) {
+        // Track changes for edit history
+        const changes: string[] = [];
+        if (editingProduct.name !== form.name) changes.push(`Nombre: ${editingProduct.name} → ${form.name}`);
+        if (editingProduct.category !== form.category) changes.push(`Categoría: ${editingProduct.category} → ${form.category}`);
+        if (editingProduct.price !== price) changes.push(`Precio: ${editingProduct.price} → ${price}`);
+        if (editingProduct.unit !== form.unit) changes.push(`Unidad: ${editingProduct.unit} → ${form.unit}`);
 
-      if (changes.length > 0) {
-        const newEdit: ProductEdit = {
-          date: new Date().toISOString().slice(0, 10),
-          user: currentUserName,
-          change: changes.join("; "),
-        };
-        setProductEdits((prev) => ({
-          ...prev,
-          [editingProduct.id]: [newEdit, ...(prev[editingProduct.id] || [])].slice(0, 10),
-        }));
+        if (changes.length > 0) {
+          const newEdit: ProductEdit = {
+            date: new Date().toISOString().slice(0, 10),
+            user: currentUserName,
+            change: changes.join("; "),
+          };
+          setProductEdits((prev) => ({
+            ...prev,
+            [editingProduct.id]: [newEdit, ...(prev[editingProduct.id] || [])].slice(0, 10),
+          }));
+        }
+
+        const updated = await updateProducto(editingProduct.id, {
+          nombre: form.name.trim(),
+          categoria: form.category.trim(),
+          price,
+          unit: form.unit.trim(),
+        });
+
+        const newProducts = products.map((p) =>
+          p.id === editingProduct.id ? { ...updated, identificador: updated.identificador ?? editingProduct.identificador } : p
+        );
+        setProducts(newProducts);
+        onUpdateProducts(newProducts);
+        setSuccessMessage("Producto actualizado");
+      } else {
+        if (!form.identificador) {
+          setError("El identificador es obligatorio");
+          setSubmitting(false);
+          return;
+        }
+
+        const created = await createProducto({
+          identificador: form.identificador.trim(),
+          nombre: form.name.trim(),
+          categoria: form.category.trim(),
+          price,
+          unit: form.unit.trim(),
+        });
+
+        const newProducts = [created, ...products];
+        setProducts(newProducts);
+        onUpdateProducts(newProducts);
+        setSuccessMessage("Producto creado");
       }
 
-      const newProducts = products.map((p) =>
-        p.id === editingProduct.id ? { ...p, name: form.name, category: form.category, price, unit: form.unit } : p
-      );
-      setProducts(newProducts);
-      onUpdateProducts(newProducts);
-    } else {
-      const newProducts = [...products, { ...form, price, status: "active" as const }];
-      setProducts(newProducts);
-      onUpdateProducts(newProducts);
+      setForm({ id: "", identificador: "", name: "", category: "", price: "", unit: "unidad" });
+      setShowModal(false);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Error al guardar producto:", err?.data || err);
+      setError(cleanErrorMessage(err?.message || "Error al guardar el producto", err?.status, err?.data));
+    } finally {
+      setSubmitting(false);
     }
-    setForm({ id: "", name: "", category: "", price: "", unit: "unidad" });
-    setShowModal(false);
   };
 
   const handleDeactivate = (product: Product) => {
-    // Check stock in stores and DCs using real inventory data
-    const locationsWithStock: string[] = [];
+    setShowDeactivate(product);
+  };
 
-    // Check stores inventory
-    Object.entries(seedStoreInventory).forEach(([storeIdStr, items]) => {
-      const storeId = Number(storeIdStr);
-      const item = items.find((i) => i.productId === product.id && i.quantity > 0);
-      if (item) {
-        const store = seedStores.find((s) => s.id === storeId);
-        const storeName = store ? store.name : `Tienda ${storeId}`;
-        locationsWithStock.push(`${storeName} (${item.quantity})`);
-      }
-    });
-
-    // Check DCs inventory
-    Object.entries(seedDCInventory).forEach(([dcIdStr, items]) => {
-      const dcId = Number(dcIdStr);
-      const item = items.find((i) => i.productId === product.id && i.quantity > 0);
-      if (item) {
-        const dc = seedDCs.find((d) => d.id === dcId);
-        const dcName = dc ? dc.name : `CD ${dcId}`;
-        locationsWithStock.push(`${dcName} (${item.quantity})`);
-      }
-    });
-
-    if (locationsWithStock.length > 0) {
-      setShowStockWarning({ product, locations: locationsWithStock });
-    } else {
-      setShowDeactivate(product);
+  const handleReactivate = async (product: Product) => {
+    setSubmitting(true);
+    setError("");
+    try {
+      const updated = await cambiarEstadoProducto(product.id, true);
+      const newProducts = products.map((p) =>
+        p.id === product.id ? { ...updated, identificador: updated.identificador ?? product.identificador } : p
+      );
+      setProducts(newProducts);
+      onUpdateProducts(newProducts);
+      setSuccessMessage("Producto reactivado");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(cleanErrorMessage(err?.message || "Error al reactivar el producto", err?.status, err?.data));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleReactivate = (product: Product) => {
-    const newProducts = products.map((p) => (p.id === product.id ? { ...p, status: "active" as const } : p));
-    setProducts(newProducts);
-    onUpdateProducts(newProducts);
-    setSuccessMessage("Producto reactivado");
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  const confirmDeactivate = () => {
+  const confirmDeactivate = async () => {
     if (!showDeactivate) return;
-    const newProducts = products.map((p) =>
-      p.id === showDeactivate.id ? { ...p, status: "inactive" as const } : p
-    );
-    setProducts(newProducts);
-    onUpdateProducts(newProducts);
-    setShowDeactivate(null);
-    setSuccessMessage("Producto desactivado");
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  const confirmDeactivateWithStock = () => {
-    if (!showStockWarning) return;
-    const newProducts = products.map((p) =>
-      p.id === showStockWarning.product.id ? { ...p, status: "inactive" as const } : p
-    );
-    setProducts(newProducts);
-    onUpdateProducts(newProducts);
-    setShowStockWarning(null);
-    setSuccessMessage("Producto desactivado (con stock en ubicaciones)");
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setSubmitting(true);
+    setError("");
+    try {
+      const updated = await cambiarEstadoProducto(showDeactivate.id, false);
+      const newProducts = products.map((p) =>
+        p.id === showDeactivate.id ? { ...updated, identificador: updated.identificador ?? showDeactivate.identificador } : p
+      );
+      setProducts(newProducts);
+      onUpdateProducts(newProducts);
+      setShowDeactivate(null);
+      setSuccessMessage("Producto desactivado");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(cleanErrorMessage(err?.message || "Error al desactivar el producto", err?.status, err?.data));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getEditHistory = (productId: string) => {
@@ -165,7 +206,7 @@ export default function ProductsPanel({
   };
 
   const rows = filtered.map((p) => [
-    <span className="font-mono text-xs text-[var(--text-muted)]">{p.id}</span>,
+    <span className="font-mono text-xs text-[var(--text-muted)]">{p.identificador}</span>,
     <span className="font-medium">{p.name}</span>,
     p.category,
     `$${p.price.toFixed(2)}`,
@@ -194,19 +235,38 @@ export default function ProductsPanel({
 
   return (
     <div>
-      {successMessage && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          {successMessage}
-        </div>
-      )}
-      <SectionHeader
-        title="Catálogo de productos"
-        subtitle="Todos los artículos registrados en el sistema"
-        action={<Btn onClick={handleOpenCreate}>+ Crear producto</Btn>}
-      />
+      {initialLoading ? null : (
+        <>
+          {error && (
+            <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2" />
+                <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-3 py-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {successMessage}
+            </div>
+          )}
+          <SectionHeader
+            title="Catálogo de productos"
+            subtitle="Todos los artículos registrados en el sistema"
+            action={
+              <div className="flex gap-2">
+                <Btn variant="secondary" size="md" onClick={() => loadProductos(false)} disabled={refreshing}>
+                  {refreshing ? "Actualizando..." : "Actualizar"}
+                </Btn>
+                <Btn onClick={handleOpenCreate}>+ Crear producto</Btn>
+              </div>
+            }
+          />
       <div className="mb-4">
         <Input placeholder="Buscar por nombre o categoría…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -222,8 +282,8 @@ export default function ProductsPanel({
                 <Label>Identificador</Label>
                 <Input
                   placeholder="P009"
-                  value={form.id}
-                  onChange={(e) => setForm({ ...form, id: e.target.value })}
+                  value={form.identificador}
+                  onChange={(e) => setForm({ ...form, identificador: e.target.value })}
                   disabled={!!editingProduct}
                 />
                 {editingProduct && (
@@ -326,37 +386,10 @@ export default function ProductsPanel({
           </div>
         </Modal>
       )}
-
-      {showStockWarning && (
-        <Modal title="Advertencia: Stock en ubicaciones" onClose={() => setShowStockWarning(null)}>
-          <div className="space-y-4">
-            <p className="text-sm text-[var(--text)]">
-              El producto <strong>{showStockWarning.product.name}</strong> tiene stock en las siguientes ubicaciones:
-            </p>
-            <div className="bg-gray-50 rounded-md p-3 text-sm">
-              <ul className="space-y-1">
-                {showStockWarning.locations.map((loc, i) => (
-                  <li key={i} className="flex justify-between">
-                    <span>{loc.split(" (")[0]}</span>
-                    <span className="font-medium text-[var(--accent)]">{loc.split(" (")[1]?.replace(")", "")} uds</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <p className="text-sm text-[var(--text-muted)]">
-              Si desactivas el producto, el stock existente no se moverá automáticamente.
-            </p>
-            <div className="flex gap-2 pt-1 justify-end">
-              <Btn onClick={confirmDeactivateWithStock} variant="primary" className="bg-[var(--danger)] border-[var(--danger)]">
-                Desactivar igualmente
-              </Btn>
-              <Btn variant="secondary" onClick={() => setShowStockWarning(null)}>
-                Cancelar
-              </Btn>
-            </div>
-          </div>
-        </Modal>
+        </>
       )}
+
+
     </div>
   );
 }

@@ -60,10 +60,18 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
 ---
 
 ## 5. Catálogo de Productos (`producto-controller`)
-- [ ] `GET /api/productos`
-- [ ] `POST /api/productos`
-- [ ] `PUT /api/productos/{id}`
-- [ ] `PATCH /api/productos/{id}/estado`
+- [x] `GET /api/productos`
+  - *Función frontend:* `getProductos()` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx) (Listado conectado al backend con botón Actualizar)
+- [x] `POST /api/productos`
+  - *Función frontend:* `createProducto({ identificador, nombre, categoria, price, unit })` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Modal de crear producto en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx) con control de errores JSON
+- [x] `PATCH /api/productos/{id}`
+  - *Función frontend:* `updateProducto(id, { nombre, categoria, price, unit })` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Modal de editar producto en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx)
+- [x] `PATCH /api/productos/{id}/estado`
+  - *Función frontend:* `cambiarEstadoProducto(id, activo)` en [`src/services/productos.ts`](./src/services/productos.ts)
+  - *Vista:* Botones Desactivar / Reactivar en [`src/pages/admin/ProductsPanel.tsx`](./src/pages/admin/ProductsPanel.tsx)
 
 ---
 

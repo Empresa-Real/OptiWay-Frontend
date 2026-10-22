@@ -9,7 +9,7 @@ interface NavItem {
 
 const NAV_ADMIN: NavItem[] = [
   { id: "users", label: "Usuarios", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", integrated: true },
-  { id: "products", label: "Productos", icon: "M4 7h16M4 12h16M4 17h16", integrated: false },
+  { id: "products", label: "Productos", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
   { id: "stores", label: "Tiendas", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", integrated: true },
   { id: "dcs", label: "Centros de distribución", icon: "M21 10H3M21 6H3M21 14H3M21 18H3", integrated: true },
 ];
