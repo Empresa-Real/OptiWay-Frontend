@@ -3,12 +3,18 @@ import type { Store } from "../../types";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 import { getTiendas, createTienda } from "../../services/tiendas";
 
-export default function StoresPanel() {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
+interface StoresPanelProps {
+  stores?: Store[];
+  onUpdateStores?: (stores: Store[]) => void;
+}
+
+export default function StoresPanel({ stores: propStores, onUpdateStores }: StoresPanelProps = {}) {
+  const [stores, setStores] = useState<Store[]>(propStores || []);
+  const [initialLoading, setInitialLoading] = useState(!propStores || propStores.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", city: "" });
 
@@ -16,7 +22,9 @@ export default function StoresPanel() {
     if (!isInitial) setRefreshing(true);
     try {
       const data = await getTiendas();
-      setStores(data || []);
+      const loaded = data || [];
+      setStores(loaded);
+      onUpdateStores?.(loaded);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/tiendas:", err?.message || err);
       // No usar datos quemados
@@ -41,9 +49,13 @@ export default function StoresPanel() {
 
     try {
       const newStore = await createTienda(form);
-      setStores((prev) => [newStore, ...prev]);
+      const updated = [newStore, ...stores];
+      setStores(updated);
+      onUpdateStores?.(updated);
       setForm({ name: "", address: "", city: "" });
       setShowCreate(false);
+      setSuccessMessage("Tienda creada correctamente.");
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error("Error al crear tienda:", err?.data || err);
       setError(err?.message || "Error al crear la tienda en el servidor.");
@@ -67,6 +79,15 @@ export default function StoresPanel() {
 
   return (
     <div>
+      {successMessage && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-4 py-2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+          <span>{successMessage}</span>
+        </div>
+      )}
+
       <SectionHeader
         title="Gestión de tiendas"
         subtitle="Sucursales registradas en la red"

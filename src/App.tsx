@@ -170,6 +170,14 @@ export default function App() {
     setProducts(newProducts);
   };
 
+  const handleUpdateStores = (newStores: Store[]) => {
+    setStores(newStores);
+  };
+
+  const handleUpdateDCs = (newDCs: DC[]) => {
+    setDCs(newDCs);
+  };
+
   if (checkingSession && !isSettingPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--text-muted)" }}>
@@ -223,13 +231,22 @@ export default function App() {
   const renderScreen = () => {
     switch (screen) {
       case "users":
-        return <UsersPanel stores={stores} dcs={dcs} users={users} onUpdateUsers={handleUpdateUsers} />;
+        return (
+          <UsersPanel
+            stores={stores}
+            dcs={dcs}
+            users={users}
+            onUpdateUsers={handleUpdateUsers}
+            onUpdateStores={handleUpdateStores}
+            onUpdateDCs={handleUpdateDCs}
+          />
+        );
       case "products":
         return <ProductsPanel products={products} onUpdateProducts={handleUpdateProducts} currentUserName={currentUser.name} />;
       case "stores":
-        return <StoresPanel />;
+        return <StoresPanel stores={stores} onUpdateStores={handleUpdateStores} />;
       case "dcs":
-        return <DCsPanel stores={stores} />;
+        return <DCsPanel stores={stores} dcs={dcs} onUpdateDCs={handleUpdateDCs} />;
       case "sale":
         if (!storeId) {
           return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;

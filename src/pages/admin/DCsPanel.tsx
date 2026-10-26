@@ -15,12 +15,19 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-export default function DCsPanel({ stores }: { stores: Store[] }) {
-  const [dcs, setDCs] = useState<DC[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
+interface DCsPanelProps {
+  stores: Store[];
+  dcs?: DC[];
+  onUpdateDCs?: (dcs: DC[]) => void;
+}
+
+export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanelProps) {
+  const [dcs, setDCs] = useState<DC[]>(propDCs || []);
+  const [initialLoading, setInitialLoading] = useState(!propDCs || propDCs.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<{ name: string; address: string; capacity: string; coverage: number[] }>({
     name: "",
@@ -34,7 +41,9 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
     setError("");
     try {
       const data = await getCentrosDistribucion();
-      setDCs(data);
+      const loaded = data || [];
+      setDCs(loaded);
+      onUpdateDCs?.(loaded);
     } catch (err: any) {
       console.warn("Aviso al consultar /api/centros-distribucion:", err?.message || err);
       setError(err?.message || "No se pudieron cargar los centros de distribución.");
@@ -71,9 +80,13 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
         coverage: form.coverage,
       });
 
-      setDCs((prev) => [newDC, ...prev]);
+      const updated = [newDC, ...dcs];
+      setDCs(updated);
+      onUpdateDCs?.(updated);
       setForm({ name: "", address: "", capacity: "", coverage: [] });
       setShowCreate(false);
+      setSuccessMessage("Centro de distribución creado correctamente.");
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error("Error al crear centro de distribución:", err?.data || err);
       setError(err?.message || "Error al crear el centro de distribución.");
@@ -108,6 +121,15 @@ export default function DCsPanel({ stores }: { stores: Store[] }) {
 
   return (
     <div>
+      {successMessage && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--success)] bg-[var(--success-light)] rounded-md px-4 py-2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+          <span>{successMessage}</span>
+        </div>
+      )}
+
       <SectionHeader
         title="Centros de distribución"
         subtitle="Almacenes y zonas de cobertura"
