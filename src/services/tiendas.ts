@@ -24,6 +24,7 @@ const TIENDA_ERRORS: ErrorTranslations = [
   ["La direccion es obligatoria", "La dirección de la tienda es obligatoria."],
   ["La ciudad es obligatoria", "La ciudad de la tienda es obligatoria."],
   ["La tienda no existe", "La tienda solicitada no existe o fue eliminada."],
+  ["Tienda no encontrada", "La tienda solicitada no existe o fue eliminada."],
   ["El usuario encargado no existe", "El usuario seleccionado como encargado no existe."],
   [
     "Solo se puede asignar una tienda a un usuario con rol Encargado de tienda",

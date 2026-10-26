@@ -39,6 +39,7 @@ const PRODUCTO_ERRORS: ErrorTranslations = [
   ["El precio es obligatorio", "El precio del producto es obligatorio."],
   ["La unidad de medida es obligatoria", "La unidad de medida del producto es obligatoria."],
   ["El producto no existe", "El producto solicitado no existe o fue eliminado."],
+  ["Producto no encontrado", "El producto solicitado no existe o fue eliminado."],
 ];
 
 const PRODUCTO_FORBIDDEN = "No tienes permisos de administrador para gestionar productos.";

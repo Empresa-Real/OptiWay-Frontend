@@ -24,7 +24,9 @@ const INGRESO_ERRORS: ErrorTranslations = [
   ["La cantidad debe ser mayor que cero", "La cantidad debe ser mayor que cero."],
   ["El origen es obligatorio", "El origen es obligatorio."],
   ["El producto no existe", "El producto solicitado no existe."],
+  ["Producto no encontrado", "El producto solicitado no existe."],
   ["El centro de distribución no existe", "El centro de distribución no existe."],
+  ["Centro de distribución no encontrado", "El centro de distribución no existe."],
 ];
 
 /**

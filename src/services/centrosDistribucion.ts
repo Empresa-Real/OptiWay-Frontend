@@ -16,6 +16,8 @@ const CD_ERRORS: ErrorTranslations = [
   ["La dirección es obligatoria", "La dirección del centro de distribución es obligatoria."],
   ["La direccion es obligatoria", "La dirección del centro de distribución es obligatoria."],
   ["La capacidad es obligatoria", "La capacidad del centro de distribución es obligatoria."],
+  ["El centro de distribución no existe", "El centro de distribución solicitado no existe o fue eliminado."],
+  ["Centro de distribución no encontrado", "El centro de distribución solicitado no existe o fue eliminado."],
   [
     "Solo se puede asignar un centro de distribución a un usuario con rol Encargado de centro de distribución",
     "Solo se puede asignar como encargado a un usuario con rol 'Encargado de CD'.",

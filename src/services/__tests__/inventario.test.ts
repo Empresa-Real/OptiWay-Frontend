@@ -93,10 +93,11 @@ describe("Servicio de Inventario (inventario.ts)", () => {
     expect(url).toContain("productoId=0");
   });
 
-  it("traduce el error cuando la ubicación no existe", async () => {
+  it("traduce el error cuando la ubicación no existe (404 Not Found)", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
       ok: false,
-      status: 400,
+      status: 404,
+      statusText: "Not Found",
       text: async () => JSON.stringify({ message: "La tienda no existe." }),
     } as Response);
 

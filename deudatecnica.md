@@ -1,6 +1,6 @@
 # Deuda técnica — OptiWay Frontend
 
-**Última actualización:** 2026-10-22
+**Última actualización:** 2026-10-26
 **Rama de trabajo:** `integration/sprint`
 **Backend:** `https://optiway-backend.onrender.com`
 
@@ -48,7 +48,7 @@ actualizar los servicios.
 - Faltan pruebas de componentes React.
 - Los tests live dependen del deploy y disponibilidad de Render; no son un gate confiable de CI.
 
-La suite actual tiene **76 tests unitarios en 8 archivos** y 3 tests live, ejecutados por separado.
+La suite actual tiene **78 tests unitarios en 8 archivos** y 3 tests live, ejecutados por separado.
 
 ---
 
@@ -75,3 +75,17 @@ Resuelto: **pnpm es el único gestor**. `package-lock.json` se eliminó y quedó
 `.gitignore`; el único lockfile es `pnpm-lock.yaml`. En CI/Vercel se instala con
 `pnpm install --frozen-lockfile`, así que cualquier dependencia nueva debe agregarse con
 `corepack pnpm add` (actualiza el lockfile correcto).
+
+### 4.5 Eliminación de diccionarios locales de traducción de errores (`ErrorTranslations`)
+
+Cada servicio mantiene constantes locales de traducción de errores (`CD_ERRORS`, `TIENDA_ERRORS`,
+`PRODUCTO_ERRORS`, `VENTA_ERRORS`, etc.) que buscan coincidencias parciales de cadenas devueltas
+por el backend para reescribirlas.
+
+Ahora que el backend estandarizó `ErrorResponse` (incluyendo 401, 403, 404 y validaciones de negocio)
+retornando mensajes limpios y descriptivos en español directamente en el campo `message`, esta capa
+intermedia introduce fragilidad por acoplamiento a substrings y mantenimiento redundante.
+
+**Pendiente:** Desacoplar los servicios de la prop `errors` en `apiFetch`, eliminar las constantes
+de traducción de strings en cada servicio y dejar que la UI consuma y muestre `ErrorResponse.message`
+directamente del backend.

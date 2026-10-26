@@ -22,7 +22,9 @@ const VENTA_ERRORS: ErrorTranslations = [
   ["La cantidad vendida debe ser mayor a cero", "La cantidad debe ser mayor que cero."],
   ["El ID del producto debe ser positivo", "El ID del producto debe ser válido."],
   ["El producto no existe", "El producto solicitado no existe."],
+  ["Producto no encontrado", "El producto solicitado no existe."],
   ["La tienda no existe", "La tienda solicitada no existe."],
+  ["Tienda no encontrada", "La tienda solicitada no existe."],
   ["Stock insuficiente", "Stock insuficiente para registrar esta venta."],
   ["stock insuficiente", "Stock insuficiente para registrar esta venta."],
 ];

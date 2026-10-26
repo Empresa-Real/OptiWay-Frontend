@@ -29,7 +29,9 @@ export interface InventarioCDParams extends FiltrosInventario {
 
 const INVENTARIO_ERRORS: ErrorTranslations = [
   ["La tienda no existe", "La ubicación solicitada no existe o fue eliminada."],
+  ["Tienda no encontrada", "La ubicación solicitada no existe o fue eliminada."],
   ["El centro de distribución no existe", "La ubicación solicitada no existe o fue eliminada."],
+  ["Centro de distribución no encontrado", "La ubicación solicitada no existe o fue eliminada."],
 ];
 
 function mapInventario(i: BackendInventario): InventoryItem {

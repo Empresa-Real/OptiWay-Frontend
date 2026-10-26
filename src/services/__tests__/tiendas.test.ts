@@ -241,11 +241,11 @@ describe("Servicio de Tiendas (tiendas.ts)", () => {
       );
     });
 
-    it("debe lanzar error limpio si la tienda no existe (404/400)", async () => {
+    it("debe lanzar error limpio si la tienda no existe (404 Not Found)", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
         ok: false,
-        status: 400,
-        statusText: "Bad Request",
+        status: 404,
+        statusText: "Not Found",
         text: async () => JSON.stringify({ message: "La tienda no existe." }),
       } as Response);
 

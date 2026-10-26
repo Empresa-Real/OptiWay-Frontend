@@ -303,6 +303,56 @@ describe("Punto de Entrada HTTP y Contrato de Error (http.ts)", () => {
       );
     });
 
+    it("extrae el mensaje en español cuando Spring Security responde 401 con ErrorResponse estándar", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: async () =>
+          JSON.stringify({
+            message: "Autenticación requerida. Token no proporcionado o inválido.",
+            error: "Unauthorized",
+            timestamp: "2026-10-26T14:00:00",
+          }),
+      } as Response);
+
+      let caught: any;
+      try {
+        await apiFetch("/api/tiendas", { fallback: "Fallo de autenticación" });
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught).toBeInstanceOf(ApiError);
+      expect(caught.status).toBe(401);
+      expect(caught.message).toBe("Autenticación requerida. Token no proporcionado o inválido.");
+      expect(caught.technicalError).toBe("Unauthorized");
+    });
+
+    it("procesa 404 Not Found con mensaje estructurado sin confundirlo con 400 Bad Request", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () =>
+          JSON.stringify({
+            message: "La tienda con ID 999 no existe.",
+            error: "Not Found",
+            timestamp: "2026-10-26T14:00:00",
+          }),
+      } as Response);
+
+      let caught: any;
+      try {
+        await apiFetch("/api/tiendas/999", { fallback: "Recurso no encontrado" });
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught).toBeInstanceOf(ApiError);
+      expect(caught.status).toBe(404);
+      expect(caught.message).toBe("La tienda con ID 999 no existe.");
+      expect(caught.technicalError).toBe("Not Found");
+    });
+
     it("no debe confundir un endpoint inválido con un fallo de red", async () => {
       await expect(
         apiFetch("https://otro-host.example/api", { fallback: "Fallback de red" })
