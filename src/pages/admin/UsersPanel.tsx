@@ -10,17 +10,23 @@ import {
 import { getTiendas, asignarEncargadoTienda } from "../../services/tiendas";
 import { getCentrosDistribucion, updateEncargadoCentroDistribucion } from "../../services/centrosDistribucion";
 
+interface UsersPanelProps {
+  stores: Store[];
+  dcs: DC[];
+  users: User[];
+  onUpdateUsers: (users: User[]) => void;
+  onUpdateStores?: (stores: Store[]) => void;
+  onUpdateDCs?: (dcs: DC[]) => void;
+}
+
 export default function UsersPanel({
   stores: initialStores,
   dcs: initialDCs,
   users: initialUsers,
   onUpdateUsers,
-}: {
-  stores: Store[];
-  dcs: DC[];
-  users: User[];
-  onUpdateUsers: (users: User[]) => void;
-}) {
+  onUpdateStores,
+  onUpdateDCs,
+}: UsersPanelProps) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [localStores, setLocalStores] = useState<Store[]>(initialStores || []);
   const [localDCs, setLocalDCs] = useState<DC[]>(initialDCs || []);
@@ -48,8 +54,7 @@ export default function UsersPanel({
   const [assignForm, setAssignForm] = useState({ targetId: "" });
   const [roleForm, setRoleForm] = useState<User["role"]>("store");
 
-  // Sincronizar si cambian los props (sin condicionar a length > 0: una lista
-  // vacía es un estado válido y antes dejaba datos viejos en pantalla)
+  // Sincronizar si cambian los props
   useEffect(() => {
     setLocalStores(initialStores ?? []);
   }, [initialStores]);
@@ -69,10 +74,18 @@ export default function UsersPanel({
     setLoading(true);
     setGeneralError(null);
     try {
-      const dataUsers = await getUsuarios();
+      const [dataUsers, dataStores, dataDCs] = await Promise.all([
+        getUsuarios(),
+        getTiendas().catch(() => localStores),
+        getCentrosDistribucion().catch(() => localDCs),
+      ]);
 
       setUsers(dataUsers);
       onUpdateUsers(dataUsers);
+      setLocalStores(dataStores);
+      onUpdateStores?.(dataStores);
+      setLocalDCs(dataDCs);
+      onUpdateDCs?.(dataDCs);
     } catch (err: any) {
       console.error("Error al consultar usuarios:", err?.data || err);
       setGeneralError(err?.message || "No se pudieron consultar los usuarios desde el backend.");
@@ -85,20 +98,26 @@ export default function UsersPanel({
     loadData();
   }, []);
 
-  // Las listas de tiendas/CD solo hacen falta al abrir el modal de asignación,
-  // no para pintar la tabla.
+  // Al abrir el modal de asignación, siempre consultar la lista fresca desde el backend
+  // para que cualquier tienda o CD recién creado aparezca de inmediato en el selector.
   useEffect(() => {
     if (!showAssign) return;
 
-    if (showAssign.role === "store" && localStores.length === 0) {
+    if (showAssign.role === "store") {
       getTiendas()
-        .then(setLocalStores)
+        .then((freshStores) => {
+          setLocalStores(freshStores);
+          onUpdateStores?.(freshStores);
+        })
         .catch((err) => setAssignError(err?.message || "No se pudieron cargar las tiendas."));
     }
 
-    if (showAssign.role === "dc" && localDCs.length === 0) {
+    if (showAssign.role === "dc") {
       getCentrosDistribucion()
-        .then(setLocalDCs)
+        .then((freshDCs) => {
+          setLocalDCs(freshDCs);
+          onUpdateDCs?.(freshDCs);
+        })
         .catch((err) => setAssignError(err?.message || "No se pudieron cargar los centros de distribución."));
     }
   }, [showAssign]);
@@ -119,10 +138,10 @@ export default function UsersPanel({
       return (
         <span
           title={nombre}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 max-w-[200px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+          className="inline-flex items-start gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 max-w-[190px] cursor-default"
         >
-          <span className="shrink-0">🏪</span>
-          <span className="truncate">{nombre}</span>
+          <span className="shrink-0 mt-0.5">🏪</span>
+          <span className="line-clamp-2 break-words leading-tight">{nombre}</span>
         </span>
       );
     }
@@ -130,10 +149,10 @@ export default function UsersPanel({
     return (
       <span
         title={nombre}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 max-w-[200px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+        className="inline-flex items-start gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 max-w-[190px] cursor-default"
       >
-        <span className="shrink-0">📦</span>
-        <span className="truncate">{nombre}</span>
+        <span className="shrink-0 mt-0.5">📦</span>
+        <span className="line-clamp-2 break-words leading-tight">{nombre}</span>
       </span>
     );
   };
@@ -302,13 +321,13 @@ export default function UsersPanel({
 
   const rows = users.map((u) => [
     <span
-      className="font-medium block truncate max-w-[190px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+      className="font-medium text-sm text-[var(--text)] block line-clamp-2 break-words leading-snug max-w-[170px] cursor-default"
       title={u.name}
     >
       {u.name}
     </span>,
     <span
-      className="text-[var(--text-muted)] block truncate max-w-[190px] xl:max-w-[240px] whitespace-nowrap cursor-default"
+      className="text-[var(--text-muted)] text-xs block line-clamp-2 break-all leading-snug max-w-[180px] cursor-default"
       title={u.email}
     >
       {u.email}

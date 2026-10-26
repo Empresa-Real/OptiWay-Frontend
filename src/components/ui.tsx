@@ -141,13 +141,15 @@ const Table = ({
   headers,
   rows,
   containerClassName = "overflow-x-auto",
+  className = "w-full text-sm border-collapse",
 }: {
   headers: string[];
   rows: React.ReactNode[][];
   containerClassName?: string;
+  className?: string;
 }) => (
   <div className={containerClassName}>
-    <table className="w-full text-sm border-collapse">
+    <table className={className}>
       <thead>
         <tr className="border-b border-[var(--border)]">
           {headers.map((h) => (
