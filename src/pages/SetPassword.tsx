@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Input, Label, Btn } from "../components/ui";
+import { ContrastToggle } from "../components/ContrastToggle";
 import { updatePassword, extractAuthTokens } from "../services/auth";
 
 export default function SetPassword({
@@ -73,9 +74,9 @@ export default function SetPassword({
 
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
+    <div className="relative min-h-screen flex" style={{ background: "var(--bg)" }}>
       {/* Left branding panel */}
-      <div className="hidden lg:flex flex-col justify-between w-80 p-10" style={{ background: "#1A1D23" }}>
+      <div className="hidden lg:flex flex-col justify-between w-80 p-10" style={{ background: "var(--sidebar-bg)" }}>
         <div>
           <div className="flex items-center gap-2 mb-12">
             <div className="w-8 h-8 rounded bg-[var(--accent)] flex items-center justify-center">
@@ -84,25 +85,29 @@ export default function SetPassword({
               </svg>
             </div>
             <div>
-              <span className="text-white font-semibold text-base tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              <span className="text-[var(--sidebar-text)] font-semibold text-base tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 Opti-Way
               </span>
-              <span className="text-white/40 text-[11px] uppercase tracking-wider block">
+              <span className="text-[var(--sidebar-text-40)] text-[11px] uppercase tracking-wider block">
                 SupplyCore
               </span>
             </div>
           </div>
-          <h2 className="text-white text-2xl font-semibold leading-snug mb-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <h2 className="text-[var(--sidebar-text)] text-2xl font-semibold leading-snug mb-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Configura tu contraseña
           </h2>
-          <p className="text-white/40 text-sm leading-relaxed">
+          <p className="text-[var(--sidebar-text-40)] text-sm leading-relaxed">
             Establece una contraseña segura para activar tu cuenta o restaurar tu acceso al sistema.
           </p>
         </div>
-        <div className="border-t border-white/10 pt-6">
-          <p className="text-white/40 text-xs font-medium">Opti-Way · Versión 1.0</p>
-          <p className="text-white/25 text-xs mt-0.5">SupplyCore Logistics Platform</p>
+        <div className="border-t border-[var(--sidebar-border)] pt-6">
+          <p className="text-[var(--sidebar-text-40)] text-xs font-medium">Opti-Way · Versión 1.0</p>
+          <p className="text-[var(--sidebar-text-25)] text-xs mt-0.5">SupplyCore Logistics Platform</p>
         </div>
+      </div>
+
+      <div className="absolute right-5 top-5 z-10">
+        <ContrastToggle />
       </div>
 
       {/* Right form panel */}

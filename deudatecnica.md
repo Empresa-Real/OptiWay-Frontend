@@ -1,6 +1,6 @@
 # Deuda técnica — OptiWay Frontend
 
-**Última actualización:** 2026-10-26
+**Última actualización:** 2026-11-21
 **Rama de trabajo:** `integration/sprint`
 **Backend:** `https://optiway-backend.onrender.com`
 
@@ -54,6 +54,20 @@ La suite actual tiene **78 tests unitarios en 8 archivos** y 3 tests live, ejecu
 
 ## 4. Otros pendientes
 
+### 4.0 Store de mocks y modo VITE_USE_MOCKS (Sprint 3)
+
+Se mantiene `src/services/mocks/` para los endpoints que siguen pendientes:
+- `ordenes.ts` (`GET /api/ordenes`, `GET /api/centros-distribucion/{id}/ordenes`).
+- `desactivarTienda` y `desactivarCentroDistribucion`.
+- `historialVentas.ts` (patrones de demanda y rotación).
+
+Las integraciones de Sprint 3 ya usan el backend real y no dependen de `VITE_USE_MOCKS`:
+- `solicitudesReposicion.ts`: `POST /api/tiendas/{id}/solicitudes-reposicion` y `GET /api/solicitudes-reposicion`.
+- `recomendaciones.ts`: `GET/POST /api/recomendaciones-reposicion`, `PATCH .../aprobar` y `PATCH .../rechazar`.
+- `inventario.ts`: `POST /api/inventario/ajustes`; las consultas de inventario ya no aplican overlay de mocks y después del ajuste se recarga el inventario desde el backend.
+
+No se agregó ninguna dependencia nueva.
+
 ### 4.1 Historial de ediciones de producto
 
 `ProductsPanel` mantiene `productEdits` en memoria. Se pierde al recargar y el backend no tiene
@@ -76,7 +90,17 @@ Resuelto: **pnpm es el único gestor**. `package-lock.json` se eliminó y quedó
 `pnpm install --frozen-lockfile`, así que cualquier dependencia nueva debe agregarse con
 `corepack pnpm add` (actualiza el lockfile correcto).
 
-### 4.5 Eliminación de diccionarios locales de traducción de errores (`ErrorTranslations`)
+### 4.5 Clase CSS inactiva en UsersPanel.tsx:666
+
+El botón de eliminar usuario usa `hover:bg-red-700`, que no resuelve a ningún color en el build de Tailwind v4 (clase inválida/ínactiva). No afecta el funcionamiento, pero debe revisarse al agregar el endpoint de eliminación real.
+
+### 4.6 Falta de pruebas para servicios nuevos
+
+Los servicios nuevos del Sprint 3 (`ordenes.ts`, `tiendas.ts` función `desactivarTienda`, `centrosDistribucion.ts` función `desactivarCentroDistribucion`, `inventario.ts` función `ajustarInventario`, `historialVentas.ts`, `solicitudesReposicion.ts`, `recomendaciones.ts`) carecen de pruebas unitarias. No se agregaron pruebas de componentes React para las pantallas nuevas del planner, tienda ni CD.
+
+La suite existente (78 tests) pasa usando variables de Supabase de prueba. Sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, `createClient` falla al importar `src/services/supabase.ts` y los suites no llegan a ejecutarse.
+
+### 4.7 Eliminación de diccionarios locales de traducción de errores (`ErrorTranslations`)
 
 Cada servicio mantiene constantes locales de traducción de errores (`CD_ERRORS`, `TIENDA_ERRORS`,
 `PRODUCTO_ERRORS`, `VENTA_ERRORS`, etc.) que buscan coincidencias parciales de cadenas devueltas
@@ -89,3 +113,13 @@ intermedia introduce fragilidad por acoplamiento a substrings y mantenimiento re
 **Pendiente:** Desacoplar los servicios de la prop `errors` en `apiFetch`, eliminar las constantes
 de traducción de strings en cada servicio y dejar que la UI consuma y muestre `ErrorResponse.message`
 directamente del backend.
+
+### 4.8 Brechas del backend para Sprint 3
+
+- **`GET /api/tiendas/{id}/solicitudes-reposicion`:** no existe. La pantalla de tienda solo muestra las solicitudes creadas en la sesión.
+- **Transición de estado de la solicitud:** no existe endpoint para marcarla como atendida al crear una recomendación. El Planificador la sigue viendo como pendiente.
+- **`GET /api/ordenes`:** no existe. El panel de órdenes del Planificador deriva de las recomendaciones aprobadas y no muestra el id real de la orden.
+- **`GET /api/centros-distribucion/{id}/ordenes`:** no existe. La pantalla `OrdenesEntrantes.tsx` sigue pendiente.
+- **`GET /api/recomendaciones-reposicion/{id}/historial`:** no existe. El historial se construye con los campos de auditoría de la respuesta.
+- **`GET /api/inventario/ajustes`:** no existe. El historial del modal es solo de la sesión y se toma de la respuesta del `POST`.
+- **Identificador de usuario:** `User.id` es el id numérico local; `creadoPor` y `resueltoPorUsuarioId` son UUID de Supabase. La UI usa `getCurrentAuthUserId()` para comparar. Si se agrega `authUserId` a `User`, hay que actualizar los tests de mapeo que comparan el objeto exacto.

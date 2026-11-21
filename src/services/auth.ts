@@ -144,6 +144,16 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
+/**
+ * UUID de Supabase del usuario autenticado.
+ * Es el mismo identificador que el backend guarda en `creadoPor` y
+ * `resueltoPorUsuarioId` de las recomendaciones; `User.id` es el id local.
+ */
+export async function getCurrentAuthUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 export interface HashAuthTokens {
   accessToken: string | null;
   refreshToken: string | null;

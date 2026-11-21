@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { User } from "../types";
 import { Input, Label, Btn } from "../components/ui";
+import { ContrastToggle } from "../components/ContrastToggle";
 import { login } from "../services/auth";
 
 export default function Login({
@@ -23,10 +24,6 @@ export default function Login({
     try {
       const result = await login(email, password);
       if (result.success && result.user) {
-        if (result.user.role === "planner") {
-          setError("El rol Planificador no tiene pantalla asignada en el frontend por el momento.");
-          return;
-        }
         onLogin(result.user);
       } else {
         setError(result.error || "No se pudo iniciar sesión. Verifica tus credenciales.");
@@ -39,9 +36,9 @@ export default function Login({
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
+    <div className="relative min-h-screen flex" style={{ background: "var(--bg)" }}>
       {/* Left panel */}
-      <div className="hidden lg:flex flex-col justify-between w-80 p-10" style={{ background: "#1A1D23" }}>
+      <div className="hidden lg:flex flex-col justify-between w-80 p-10" style={{ background: "var(--sidebar-bg)" }}>
         <div>
           <div className="flex items-center gap-2 mb-12">
             <div className="w-8 h-8 rounded bg-[var(--accent)] flex items-center justify-center">
@@ -50,21 +47,25 @@ export default function Login({
               </svg>
             </div>
             <div>
-              <span className="text-white font-semibold text-base tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>Opti-Way</span>
-              <span className="text-white/40 text-[11px] uppercase tracking-wider block">SupplyCore</span>
+              <span className="text-[var(--sidebar-text)] font-semibold text-base tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>Opti-Way</span>
+              <span className="text-[var(--sidebar-text-40)] text-[11px] uppercase tracking-wider block">SupplyCore</span>
             </div>
           </div>
-          <h2 className="text-white text-2xl font-semibold leading-snug mb-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <h2 className="text-[var(--sidebar-text)] text-2xl font-semibold leading-snug mb-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Sistema de gestión de cadena de suministro
           </h2>
-          <p className="text-white/40 text-sm leading-relaxed">
+          <p className="text-[var(--sidebar-text-40)] text-sm leading-relaxed">
             Administra tu catálogo, operación y personal desde un solo lugar.
           </p>
         </div>
-        <div className="border-t border-white/10 pt-6">
-          <p className="text-white/40 text-xs font-medium">Opti-Way · Versión 1.0</p>
-          <p className="text-white/25 text-xs mt-0.5">SupplyCore Logistics Platform</p>
+        <div className="border-t border-[var(--sidebar-border)] pt-6">
+          <p className="text-[var(--sidebar-text-40)] text-xs font-medium">Opti-Way · Versión 1.0</p>
+          <p className="text-[var(--sidebar-text-25)] text-xs mt-0.5">SupplyCore Logistics Platform</p>
         </div>
+      </div>
+
+      <div className="absolute right-5 top-5 z-10">
+        <ContrastToggle variant="page" />
       </div>
 
       {/* Right: form */}

@@ -1,5 +1,11 @@
 import type { Store } from "../types";
 import { apiFetch, type ErrorTranslations } from "./http";
+import {
+  isMocksEnabled,
+  getMockStores,
+  setStoreStatus,
+  initMockStore,
+} from "./mocks";
 
 export interface BackendTienda {
   id: number;
@@ -48,8 +54,14 @@ function mapBackendTiendaToFrontend(t: BackendTienda): Store {
 /**
  * Obtiene la lista de tiendas registradas desde el backend.
  * Endpoint: GET /api/tiendas
+ *
+ * Cuando VITE_USE_MOCKS === 'true', devuelve las tiendas del store único en
+ * memoria (con el overlay de estados aplicado).
  */
 export async function getTiendas(): Promise<Store[]> {
+  if (isMocksEnabled()) {
+    return getMockStores();
+  }
   const data = await apiFetch<BackendTienda[]>("/api/tiendas", {
     fallback: "Error al obtener la lista de tiendas",
     errors: TIENDA_ERRORS,
@@ -58,6 +70,25 @@ export async function getTiendas(): Promise<Store[]> {
 
   return data.map(mapBackendTiendaToFrontend);
 }
+
+/**
+ * Desactiva una tienda (pone su estado en "inactive").
+ * Endpoint: PATCH /api/tiendas/{id}/estado
+ */
+// TODO(backend): PATCH /api/tiendas/{id}/estado
+export async function desactivarTienda(id: number): Promise<void> {
+  if (isMocksEnabled()) {
+    setStoreStatus(id, "inactive");
+    return;
+  }
+  throw new Error("Endpoint pendiente de backend");
+}
+
+/**
+ * Expone la inicialización del store de mocks para ser llamada desde App.tsx
+ * tras cargar las listas reales.
+ */
+export { initMockStore };
 
 /**
  * Registra una nueva tienda en el sistema.

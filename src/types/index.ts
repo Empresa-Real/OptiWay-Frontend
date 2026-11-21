@@ -83,3 +83,57 @@ export interface ProductEdit {
   user: string;
   change: string;
 }
+
+export interface Order {
+  id: number;
+  productId: string;
+  quantity: number;
+  originDcId: number;
+  destStoreId: number;
+  status: string;
+  date?: string;
+  recommendationId?: number;
+  nombreProducto?: string;
+}
+
+export interface InventoryAdjustment {
+  date: string;
+  user: string;
+  change: string;
+}
+
+export interface SalesHistoryItem {
+  id: number;
+  storeId: number;
+  productId: string;
+  quantity: number;
+  date: string;
+}
+
+export interface ReplenishmentRequest {
+  id: number;
+  storeId: number;
+  productId: string;
+  quantity: number;
+  date: string;
+  status: "Pendiente" | "Atendida";
+  nombreProducto?: string;
+}
+
+export interface RecommendationDecision {
+  date: string;
+  user: string;
+  action: string;
+}
+
+export interface Recommendation {
+  id: number;
+  productId: string;
+  quantity: number;
+  originDcId: number;
+  destStoreId: number;
+  status: "Propuesta" | "Aprobada" | "Rechazada";
+  history: RecommendationDecision[];
+  nombreProducto?: string;
+  fueraDeCobertura?: boolean;
+}

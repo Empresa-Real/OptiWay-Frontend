@@ -7,12 +7,17 @@ import ProductsPanel from "./pages/admin/ProductsPanel";
 import StoresPanel from "./pages/admin/StoresPanel";
 import DCsPanel from "./pages/admin/DCsPanel";
 import RegisterSale from "./pages/store/RegisterSale";
+import SolicitarReposicion from "./pages/store/SolicitarReposicion";
 import RegisterReceipt from "./pages/dc/RegisterReceipt";
+import OrdenesEntrantes from "./pages/dc/OrdenesEntrantes";
 import InventoryView from "./pages/shared/InventoryView";
 import SetPassword from "./pages/SetPassword";
+import PatronesDeDemanda from "./pages/planner/PatronesDeDemanda";
+import RotacionProductos from "./pages/planner/RotacionProductos";
+import Recomendaciones from "./pages/planner/Recomendaciones";
 import { getCurrentUser, logout } from "./services/auth";
 import { supabase } from "./services/supabase";
-import { getTiendas } from "./services/tiendas";
+import { getTiendas, initMockStore } from "./services/tiendas";
 import { getCentrosDistribucion } from "./services/centrosDistribucion";
 import { getProductos } from "./services/productos";
 import { Card, SectionHeader } from "./components/ui";
@@ -21,7 +26,7 @@ const DEFAULT_SCREENS: Record<UserRole, string> = {
   admin: "users",
   store: "sale",
   dc: "dc-inventory",
-  planner: "planner-pending",
+  planner: "recommendations",
 };
 
 /** Pantalla de inicio por rol. `null` si el rol no tiene una asignada. */
@@ -80,7 +85,7 @@ export default function App() {
     async function restoreSession() {
       try {
         const user = await getCurrentUser();
-        if (isMounted && user && user.role !== "planner") {
+        if (isMounted && user) {
           setCurrentUser(user);
           const target = defaultScreen(user.role);
           if (target) setScreen(target);
@@ -119,6 +124,10 @@ export default function App() {
         setStores(storesData || []);
         setDCs(dcsData || []);
         setProducts(productsData || []);
+
+        if (import.meta.env.VITE_USE_MOCKS === "true") {
+          initMockStore(storesData || [], dcsData || [], productsData || []);
+        }
       } catch (err) {
         console.warn("Aviso al cargar sucursales:", err);
       }
@@ -131,7 +140,7 @@ export default function App() {
     setIsSettingPassword(false);
     try {
       const user = await getCurrentUser();
-      if (user && user.role !== "planner") {
+      if (user) {
         setCurrentUser(user);
         const target = defaultScreen(user.role);
         if (target) setScreen(target);
@@ -142,7 +151,6 @@ export default function App() {
   };
 
   const handleLogin = (user: User) => {
-    if (user.role === "planner") return;
     setCurrentUser(user);
     const target = defaultScreen(user.role);
     if (target) setScreen(target);
@@ -204,7 +212,7 @@ export default function App() {
     );
   }
 
-  if (!currentUser || currentUser.role === "planner") {
+  if (!currentUser) {
     return <Login onLogin={handleLogin} users={users} />;
   }
 
@@ -252,6 +260,11 @@ export default function App() {
           return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
         }
         return <RegisterSale storeId={storeId} products={products} />;
+      case "solicitud-reposicion":
+        if (!storeId) {
+          return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
+        }
+        return <SolicitarReposicion storeId={storeId} products={products} />;
       case "inventory":
         if (!storeId) {
           return <NoLocationNotice message="Tu usuario no tiene una tienda asignada." />;
@@ -260,7 +273,8 @@ export default function App() {
           <InventoryView
             source={{ tipo: "tienda", id: storeId }}
             title="Inventario de mi tienda"
-            subtitle={`${stores.find((s) => s.id === storeId)?.name ?? "Tienda"} · Solo consulta`}
+            subtitle={stores.find((s) => s.id === storeId)?.name ?? "Tienda"}
+            currentUserName={currentUser.name}
           />
         );
       case "dc-inventory":
@@ -271,7 +285,8 @@ export default function App() {
           <InventoryView
             source={{ tipo: "cd", id: dcId }}
             title="Inventario de mi centro de distribución"
-            subtitle={`${dcs.find((d) => d.id === dcId)?.name ?? "CD"} · Solo consulta`}
+            subtitle={dcs.find((d) => d.id === dcId)?.name ?? "CD"}
+            currentUserName={currentUser.name}
           />
         );
       case "dc-receipt":
@@ -279,8 +294,17 @@ export default function App() {
           return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
         }
         return <RegisterReceipt dcId={dcId} products={products} />;
-      case "planner-pending":
-        return <ModulePending message="El módulo del Planificador todavía no tiene pantallas asignadas." />;
+      case "incoming-orders":
+        if (!dcId) {
+          return <NoLocationNotice message="Tu usuario no tiene un centro de distribución asignado." />;
+        }
+        return <OrdenesEntrantes dcId={dcId} products={products} stores={stores} />;
+      case "demand-patterns":
+        return <PatronesDeDemanda products={products} stores={stores} />;
+      case "product-rotation":
+        return <RotacionProductos products={products} stores={stores} />;
+      case "recommendations":
+        return <Recomendaciones products={products} stores={stores} dcs={dcs} currentUserName={currentUser.name} />;
       default:
         return null;
     }

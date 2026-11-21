@@ -1,5 +1,10 @@
 import type { DC } from "../types";
 import { apiFetch, type ErrorTranslations } from "./http";
+import {
+  isMocksEnabled,
+  getMockDCs,
+  setDCStatus,
+} from "./mocks";
 
 export interface BackendCentroDistribucion {
   id: number;
@@ -41,8 +46,14 @@ export function mapBackendCDToFrontend(backendCD: BackendCentroDistribucion): DC
 /**
  * Consulta la lista de centros de distribución desde el backend.
  * Endpoint: GET /api/centros-distribucion
+ *
+ * Cuando VITE_USE_MOCKS === 'true', devuelve los CDs del store único en
+ * memoria (con el overlay de estados aplicado).
  */
 export async function getCentrosDistribucion(): Promise<DC[]> {
+  if (isMocksEnabled()) {
+    return getMockDCs();
+  }
   const data = await apiFetch<BackendCentroDistribucion[]>("/api/centros-distribucion", {
     fallback: "No se pudieron obtener los centros de distribución",
     errors: CD_ERRORS,
@@ -50,6 +61,19 @@ export async function getCentrosDistribucion(): Promise<DC[]> {
   });
 
   return data.map(mapBackendCDToFrontend);
+}
+
+/**
+ * Desactiva un centro de distribución (pone su estado en "inactive").
+ * Endpoint: PATCH /api/centros-distribucion/{id}/estado
+ */
+// TODO(backend): PATCH /api/centros-distribucion/{id}/estado
+export async function desactivarCentroDistribucion(id: number): Promise<void> {
+  if (isMocksEnabled()) {
+    setDCStatus(id, "inactive");
+    return;
+  }
+  throw new Error("Endpoint pendiente de backend");
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { InventoryItem } from "../../types";
-import { getInventarioTienda, getInventarioCD } from "../../services/inventario";
-import { Badge, Input, Card, SectionHeader, Table } from "../../components/ui";
+import { getInventarioTienda, getInventarioCD, ajustarInventario } from "../../services/inventario";
+import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 
 function parseProductIdSearch(term: string): number | null {
   if (!/^\d+$/.test(term)) return null;
@@ -9,14 +9,26 @@ function parseProductIdSearch(term: string): number | null {
   return Number.isSafeInteger(productId) ? productId : null;
 }
 
+function formatFecha(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("es-MX", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
 export default function InventoryView({
   source,
   title,
   subtitle,
+  currentUserName,
 }: {
   source: { tipo: "tienda" | "cd"; id: number };
   title: string;
   subtitle?: string;
+  currentUserName?: string;
 }) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [idResults, setIdResults] = useState<InventoryItem[] | null>(null);
@@ -24,6 +36,11 @@ export default function InventoryView({
   const [loading, setLoading] = useState(true);
   const [searchingById, setSearchingById] = useState(false);
   const [error, setError] = useState("");
+  const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null);
+  const [newQuantity, setNewQuantity] = useState("");
+  const [quantityError, setQuantityError] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [adjustmentHistory, setAdjustmentHistory] = useState<Record<string, { date: string; user: string; change: string }[]>>({});
 
   const { tipo, id } = source;
   const term = search.trim();
@@ -96,6 +113,76 @@ export default function InventoryView({
     };
   }, [tipo, id, productId]);
 
+  const openAdjustment = (item: InventoryItem) => {
+    setAdjustingItem(item);
+    setNewQuantity(String(item.quantity));
+    setQuantityError("");
+  };
+
+  const closeAdjustment = () => {
+    setAdjustingItem(null);
+    setNewQuantity("");
+    setQuantityError("");
+  };
+
+  const reloadInventory = async () => {
+    const data =
+      tipo === "tienda"
+        ? await getInventarioTienda({ tiendaId: id })
+        : await getInventarioCD({ centroDistribucionId: id });
+    setItems(data);
+
+    if (productId !== null) {
+      const filtered =
+        tipo === "tienda"
+          ? await getInventarioTienda({ tiendaId: id, productoId: productId })
+          : await getInventarioCD({ centroDistribucionId: id, productoId: productId });
+      setIdResults(filtered);
+    }
+  };
+
+  const handleAdjustment = async () => {
+    if (!adjustingItem) return;
+    const item = adjustingItem;
+    const quantity = Number(newQuantity);
+    if (newQuantity === "" || Number.isNaN(quantity) || quantity < 0) {
+      setQuantityError("La cantidad no puede ser negativa");
+      return;
+    }
+
+    setError("");
+    try {
+      const result = await ajustarInventario(tipo, id, item.productId, quantity);
+
+      setAdjustmentHistory((prev) => ({
+        ...prev,
+        [item.productId]: [
+          {
+            date: formatFecha(result.fechaAjuste),
+            user: currentUserName || `Usuario #${result.usuarioId}`,
+            change: `Cantidad: ${result.cantidadAnterior} → ${result.cantidadNueva}`,
+          },
+          ...(prev[item.productId] ?? []),
+        ],
+      }));
+
+      closeAdjustment();
+      setFeedback("Inventario ajustado");
+      setTimeout(() => setFeedback(null), 3000);
+
+      try {
+        await reloadInventory();
+      } catch (reloadErr: any) {
+        setError(
+          reloadErr?.message ||
+            "El ajuste se guardó, pero no se pudo recargar el inventario.",
+        );
+      }
+    } catch (err: any) {
+      setQuantityError(err?.message || "No se pudo ajustar el inventario.");
+    }
+  };
+
   const visibleItems =
     productId !== null
       ? idResults ?? []
@@ -121,6 +208,9 @@ export default function InventoryView({
           </span>
         )}
       </span>,
+      <Btn size="sm" variant="ghost" onClick={() => openAdjustment(item)}>
+        Ajustar
+      </Btn>,
     ];
   });
 
@@ -152,11 +242,76 @@ export default function InventoryView({
       ) : (
         <Card>
           {waitingForResults && <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">Buscando...</p>}
-          <Table headers={["Producto", "Categoría", "Cantidad disponible"]} rows={rows} />
+          <Table headers={["Producto", "Categoría", "Cantidad disponible", "Acciones"]} rows={rows} />
         </Card>
       )}
+
+      {feedback && (
+        <div className="mb-4 rounded-md bg-[var(--success-light)] px-3 py-2 text-sm text-[var(--success)]">
+          {feedback}
+        </div>
+      )}
+
+      {adjustingItem && (
+        <Modal title="Ajustar inventario" onClose={closeAdjustment}>
+          <div className="space-y-4">
+            <div>
+              <Label>Producto</Label>
+              <Input value={adjustingItem.nombreProducto ?? adjustingItem.productId} disabled />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Cantidad actual</Label>
+                <Input value={adjustingItem.quantity} disabled />
+              </div>
+              <div>
+                <Label>Nueva cantidad</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newQuantity}
+                  onChange={(event) => {
+                    setNewQuantity(event.target.value);
+                    setQuantityError("");
+                  }}
+                />
+                {quantityError && (
+                  <p className="mt-1 text-xs text-[var(--danger)]">{quantityError}</p>
+                )}
+              </div>
+            </div>
+            <div className="border-t border-[var(--border)] pt-4">
+              <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Ajustes de esta sesión</h3>
+              <div className="overflow-x-auto rounded-md border border-[var(--border)]">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
+                      <th className="px-2 py-2 text-left font-medium text-[var(--text-muted)]">Fecha y hora</th>
+                      <th className="px-2 py-2 text-left font-medium text-[var(--text-muted)]">Usuario responsable</th>
+                      <th className="px-2 py-2 text-left font-medium text-[var(--text-muted)]">Ajuste realizado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(adjustmentHistory[adjustingItem.productId] ?? []).map((entry, index) => (
+                      <tr key={`${entry.date}-${index}`} className="border-b border-[var(--border)] last:border-0">
+                        <td className="px-2 py-2 text-[var(--text-muted)]">{entry.date}</td>
+                        <td className="px-2 py-2">{entry.user}</td>
+                        <td className="px-2 py-2">{entry.change}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Btn variant="secondary" onClick={closeAdjustment}>Cancelar</Btn>
+              <Btn onClick={handleAdjustment}>Guardar ajuste</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
       <p className="mt-3 text-xs text-[var(--text-muted)]">
-        Vista de solo consulta — las cantidades se actualizan con las ventas e ingresos registrados.
+        Las cantidades se actualizan con las ventas, los ingresos y los ajustes registrados.
       </p>
     </div>
   );
