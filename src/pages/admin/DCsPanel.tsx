@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { DC, Store } from "../../types";
-import { getCentrosDistribucion, createCentroDistribucion } from "../../services/centrosDistribucion";
+import { getCentrosDistribucion, createCentroDistribucion, cambiarEstadoCentroDistribucion } from "../../services/centrosDistribucion";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 
 function ErrorBanner({ message }: { message: string }) {
@@ -35,6 +35,9 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
     capacity: "",
     coverage: [],
   });
+  const [showDeactivate, setShowDeactivate] = useState<DC | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState("");
 
   const loadDCs = async (isInitial = false): Promise<void> => {
     if (!isInitial) setRefreshing(true);
@@ -95,6 +98,44 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
     }
   };
 
+  const requestStatusChange = (dc: DC) => {
+    setShowDeactivate(dc);
+    setDeactivateError("");
+  };
+
+  const handleStatusChange = async () => {
+    if (!showDeactivate) return;
+    const target = showDeactivate;
+    const activo = target.status === "inactive";
+
+    setDeactivating(true);
+    setDeactivateError("");
+    setError("");
+    try {
+      await cambiarEstadoCentroDistribucion(
+        target.id,
+        activo,
+        !activo ? true : undefined,
+      );
+      const updatedDCs = dcs.map((d) =>
+        d.id === target.id ? { ...d, status: activo ? ("active" as const) : ("inactive" as const) } : d,
+      );
+      setDCs(updatedDCs);
+      onUpdateDCs?.(updatedDCs);
+      setSuccessMessage(
+        activo
+          ? "Centro de distribución reactivado"
+          : "Centro de distribución desactivado",
+      );
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setDeactivateError(err?.message || "No se pudo actualizar el estado del centro de distribución.");
+    } finally {
+      setDeactivating(false);
+      setShowDeactivate(null);
+    }
+  };
+
   const toggleCoverage = (id: number): void => {
     setForm((f) => ({
       ...f,
@@ -113,6 +154,9 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
     <Badge key={`badge-${d.id}`} variant={d.status === "active" ? "success" : "neutral"}>
       {d.status === "active" ? "Activo" : "Inactivo"}
     </Badge>,
+    <Btn key={`btn-${d.id}`} size="sm" variant="ghost" onClick={() => requestStatusChange(d)}>
+      {d.status === "active" ? "Desactivar" : "Reactivar"}
+    </Btn>,
   ]);
 
   if (initialLoading) {
@@ -157,7 +201,7 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
             No hay centros de distribución registrados.
           </div>
         ) : (
-          <Table headers={["Nombre", "Dirección", "Capacidad", "Cobertura", "Estado"]} rows={rows} />
+          <Table headers={["Nombre", "Dirección", "Capacidad", "Cobertura", "Estado", "Acciones"]} rows={rows} />
         )}
       </Card>
 
@@ -198,7 +242,7 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
             <div>
               <Label>Zona de cobertura (tiendas)</Label>
               <div className="space-y-2 mt-1">
-                {stores.map((s: Store) => (
+                {stores.filter((s) => s.status === "active").map((s: Store) => (
                   <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
@@ -221,6 +265,63 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
               </Btn>
               <Btn variant="secondary" onClick={() => setShowCreate(false)} disabled={submitting}>
                 Cancelar
+              </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {deactivateError && (
+        <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+          <span>{deactivateError}</span>
+        </div>
+      )}
+
+      {showDeactivate && (
+        <Modal
+          title={
+            showDeactivate.status === "inactive"
+              ? "Reactivar centro de distribución"
+              : "Desactivar centro de distribución"
+          }
+          onClose={() => !deactivating && setShowDeactivate(null)}
+        >
+          <div className="space-y-5">
+            {showDeactivate.status === "inactive" ? (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {showDeactivate.name} volverá a estar activo para abastecer tiendas.
+              </p>
+            ) : (
+              <div className="rounded-md border border-[var(--warning)] bg-[var(--warning-light)] p-4 text-sm text-[var(--text)]">
+                <p>
+                  Este centro de distribución tiene las siguientes tiendas en su zona de cobertura:
+                </p>
+                <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
+                  {showDeactivate.coverage
+                    .map((id) => stores.find((s) => s.id === id))
+                    .filter((s): s is Store => Boolean(s))
+                    .map((s) => (
+                      <li key={s.id}>
+                        {s.name} — {s.city}
+                      </li>
+                    ))}
+                </ul>
+                <p className="mt-3 font-medium">¿Deseas desactivarlo de todas formas?</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Btn variant="secondary" onClick={() => setShowDeactivate(null)} disabled={deactivating}>
+                Cancelar
+              </Btn>
+              <Btn onClick={handleStatusChange} disabled={deactivating}>
+                {deactivating
+                  ? "Guardando..."
+                  : showDeactivate.status === "inactive"
+                    ? "Reactivar"
+                    : "Confirmar desactivación"}
               </Btn>
             </div>
           </div>

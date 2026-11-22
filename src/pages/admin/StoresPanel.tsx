@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import type { Store } from "../../types";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
-import { getTiendas, createTienda } from "../../services/tiendas";
+import { getTiendas, createTienda, cambiarEstadoTienda } from "../../services/tiendas";
+import { ApiError } from "../../services/http";
 
 interface StoresPanelProps {
   stores?: Store[];
@@ -17,6 +18,10 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", city: "" });
+  const [showDeactivate, setShowDeactivate] = useState<Store | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const loadStores = async (isInitial = false) => {
     if (!isInitial) setRefreshing(true);
@@ -64,6 +69,47 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
     }
   };
 
+  const requestStatusChange = (store: Store) => {
+    setShowDeactivate(store);
+    setDeactivateError("");
+    setNeedsConfirmation(false);
+  };
+
+  const handleStatusChange = async () => {
+    if (!showDeactivate) return;
+    const target = showDeactivate;
+    const activo = target.status === "inactive";
+
+    setDeactivating(true);
+    setDeactivateError("");
+    setError("");
+    try {
+      await cambiarEstadoTienda(target.id, activo, needsConfirmation || undefined);
+      const updatedStores = stores.map((s) =>
+        s.id === target.id ? { ...s, status: activo ? ("active" as const) : ("inactive" as const) } : s,
+      );
+      setStores(updatedStores);
+      onUpdateStores?.(updatedStores);
+      setSuccessMessage(activo ? "Tienda reactivada" : "Tienda desactivada");
+      setTimeout(() => setSuccessMessage(null), 3000);
+      setShowDeactivate(null);
+      setNeedsConfirmation(false);
+    } catch (err: any) {
+      if (
+        !activo &&
+        err instanceof ApiError &&
+        err.status === 409 &&
+        /confirmaci[oó]n/i.test(err.message)
+      ) {
+        setNeedsConfirmation(true);
+        return;
+      }
+      setDeactivateError(err?.message || "No se pudo actualizar el estado de la tienda.");
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
   if (initialLoading) {
     return null;
   }
@@ -75,6 +121,9 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
     <Badge variant={s.status === "active" ? "success" : "neutral"}>
       {s.status === "active" ? "Activa" : "Inactiva"}
     </Badge>,
+    <Btn size="sm" variant="ghost" onClick={() => requestStatusChange(s)}>
+      {s.status === "active" ? "Desactivar" : "Reactivar"}
+    </Btn>,
   ]);
 
   return (
@@ -109,7 +158,7 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
             No hay tiendas registradas.
           </div>
         ) : (
-          <Table headers={["Nombre", "Dirección", "Ciudad", "Estado"]} rows={rows} />
+          <Table headers={["Nombre", "Dirección", "Ciudad", "Estado", "Acciones"]} rows={rows} />
         )}
       </Card>
 
@@ -161,6 +210,57 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
               </Btn>
               <Btn variant="secondary" onClick={() => setShowCreate(false)} disabled={submitting}>
                 Cancelar
+              </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {deactivateError && (
+        <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+          <span>{deactivateError}</span>
+        </div>
+      )}
+
+      {showDeactivate && (
+        <Modal
+          title={
+            showDeactivate.status === "inactive"
+              ? "Reactivar tienda"
+              : "Desactivar tienda"
+          }
+          onClose={() => !deactivating && setShowDeactivate(null)}
+        >
+          <div className="space-y-5">
+            {showDeactivate.status === "inactive" ? (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {showDeactivate.name} volverá a recibir asignaciones de usuarios e inventario.
+              </p>
+            ) : needsConfirmation ? (
+              <div className="rounded-md border border-[var(--warning)] bg-[var(--warning-light)] p-4 text-sm text-[var(--text)]">
+                <p>La tienda tiene órdenes de reposición en tránsito o enviadas.</p>
+                <p className="mt-3 font-medium">¿Deseas desactivarla de todas formas?</p>
+              </div>
+            ) : (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {showDeactivate.name} dejará de recibir nuevas asignaciones de usuarios e inventario. Su historial se conserva.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Btn variant="secondary" onClick={() => setShowDeactivate(null)} disabled={deactivating}>
+                Cancelar
+              </Btn>
+              <Btn onClick={handleStatusChange} disabled={deactivating}>
+                {deactivating
+                  ? "Guardando..."
+                  : showDeactivate.status === "inactive"
+                    ? "Reactivar"
+                    : needsConfirmation
+                      ? "Confirmar desactivación"
+                      : "Desactivar"}
               </Btn>
             </div>
           </div>

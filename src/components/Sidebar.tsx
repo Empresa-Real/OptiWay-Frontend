@@ -1,4 +1,5 @@
 import type { UserRole } from "../types";
+import { ContrastToggle } from "./ContrastToggle";
 
 interface NavItem {
   id: string;
@@ -17,25 +18,33 @@ const NAV_ADMIN: NavItem[] = [
 const NAV_STORE: NavItem[] = [
   { id: "sale", label: "Registrar venta", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z", integrated: true },
   { id: "inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
+  { id: "solicitud-reposicion", label: "Solicitar reposición", icon: "M12 5v14M5 12h14", integrated: true },
 ];
 
 const NAV_DC: NavItem[] = [
   { id: "dc-inventory", label: "Inventario", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
   { id: "dc-receipt", label: "Registrar ingreso", icon: "M12 5v14M5 12l7-7 7 7", integrated: true },
+  { id: "incoming-orders", label: "Órdenes entrantes", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
+];
+
+const NAV_PLANNER: NavItem[] = [
+  { id: "demand-patterns", label: "Patrones de demanda", icon: "M4 19V9M10 19V5M16 19v-7M22 19V3", integrated: true },
+  { id: "product-rotation", label: "Rotación de productos", icon: "M4 7h16M4 12h16M4 17h16", integrated: true },
+  { id: "recommendations", label: "Recomendaciones", icon: "M12 3v18M3 12h18", integrated: true },
 ];
 
 const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   admin: NAV_ADMIN,
   store: NAV_STORE,
   dc: NAV_DC,
-  planner: [],
+  planner: NAV_PLANNER,
 };
 
 const LABEL_BY_ROLE: Record<UserRole, string> = {
   admin: "Administrador",
   store: "Encargado de tienda",
   dc: "Encargado de CD",
-  planner: "Planificador",
+  planner: "Analista/Planificador",
 };
 
 function NavIcon({ d }: { d: string }) {
@@ -87,11 +96,11 @@ function Sidebar({
 
   return (
     <aside
-      style={{ width: "var(--sidebar-w)", minWidth: "var(--sidebar-w)", background: "#1A1D23" }}
+      style={{ width: "var(--sidebar-w)", minWidth: "var(--sidebar-w)", background: "var(--sidebar-bg)" }}
       className="flex flex-col h-full"
     >
       {/* Logo */}
-      <div className="px-5 pt-6 pb-4 border-b border-white/10">
+      <div className="px-5 pt-6 pb-4 border-b border-[var(--sidebar-border)]">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -99,10 +108,10 @@ function Sidebar({
             </svg>
           </div>
           <div>
-            <span className="text-white font-semibold text-sm tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <span className="text-[var(--sidebar-text)] font-semibold text-sm tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Opti-Way
             </span>
-            <span className="text-white/40 text-[10px] uppercase tracking-wider block">
+            <span className="text-[var(--sidebar-text-40)] text-[10px] uppercase tracking-wider block">
               SupplyCore
             </span>
           </div>
@@ -117,8 +126,8 @@ function Sidebar({
             onClick={() => setScreen(item.id)}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm transition-colors cursor-pointer text-left ${
               screen === item.id
-                ? "bg-[var(--accent)] text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
+                ? "bg-[var(--accent)] text-[var(--on-accent)]"
+                : "text-[var(--sidebar-text-60)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)]"
             }`}
           >
             <NavIcon d={item.icon} />
@@ -129,13 +138,14 @@ function Sidebar({
       </nav>
 
       {/* User footer */}
-      <div className="px-4 py-4 border-t border-white/10">
-        <div className="mb-0.5 text-xs text-white/40 uppercase tracking-wide">{roleLabel}</div>
-        <div className="text-sm text-white/80 font-medium truncate">{userName}</div>
-        {locationName && <div className="text-xs text-white/40 truncate mt-0.5">{locationName}</div>}
+      <div className="px-4 py-4 border-t border-[var(--sidebar-border)]">
+        <div className="mb-0.5 text-xs text-[var(--sidebar-text-40)] uppercase tracking-wide">{roleLabel}</div>
+        <div className="text-sm text-[var(--sidebar-text-80)] font-medium truncate">{userName}</div>
+        {locationName && <div className="text-xs text-[var(--sidebar-text-40)] truncate mt-0.5">{locationName}</div>}
+          <ContrastToggle />
         <button
           onClick={onLogout}
-          className="mt-3 text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+          className="mt-3 text-xs text-[var(--sidebar-text-40)] hover:text-[var(--sidebar-text-70)] transition-colors cursor-pointer"
         >
           Cerrar sesión
         </button>

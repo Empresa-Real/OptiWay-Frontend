@@ -13,6 +13,18 @@ export interface BackendInventario {
   stockBajo: boolean;
 }
 
+export interface AjusteInventarioResult {
+  id: number;
+  tiendaId: number | null;
+  centroDistribucionId: number | null;
+  productoId: number;
+  cantidadAnterior: number;
+  diferencia: number;
+  cantidadNueva: number;
+  usuarioId: number;
+  fechaAjuste: string;
+}
+
 interface FiltrosInventario {
   nombre?: string;
   categoria?: string;
@@ -34,14 +46,30 @@ const INVENTARIO_ERRORS: ErrorTranslations = [
   ["Centro de distribución no encontrado", "La ubicación solicitada no existe o fue eliminada."],
 ];
 
-function mapInventario(i: BackendInventario): InventoryItem {
+const AJUSTE_ERRORS: ErrorTranslations = [
+  ["La nueva cantidad debe ser mayor o igual a cero", "La cantidad no puede ser negativa."],
+  [
+    "El producto no está registrado en el inventario",
+    "El producto no está registrado en el inventario de esta ubicación.",
+  ],
+  [
+    "Solo el ENCARGADO_CD asignado",
+    "Solo el encargado del CD puede ajustar este inventario.",
+  ],
+  [
+    "No tiene permisos para ajustar",
+    "No tienes permisos para ajustar este inventario.",
+  ],
+];
+
+function mapInventario(inventario: BackendInventario): InventoryItem {
   return {
-    productId: String(i.productoId),
-    quantity: i.cantidadActual,
-    minStock: i.stockMinimo,
-    nombreProducto: i.nombreProducto,
-    categoriaProducto: i.categoriaProducto,
-    stockBajo: i.stockBajo,
+    productId: String(inventario.productoId),
+    quantity: inventario.cantidadActual,
+    minStock: inventario.stockMinimo,
+    nombreProducto: inventario.nombreProducto,
+    categoriaProducto: inventario.categoriaProducto,
+    stockBajo: inventario.stockBajo,
   };
 }
 
@@ -83,4 +111,32 @@ export async function getInventarioCD(params: InventarioCDParams): Promise<Inven
   });
 
   return data.map(mapInventario);
+}
+
+/**
+ * Ajusta la cantidad de inventario de un producto en una ubicación.
+ * Endpoint: POST /api/inventario/ajustes
+ * Body: { tiendaId | centroDistribucionId, productoId, nuevaCantidad }
+ *
+ * El backend devuelve el ajuste registrado con la cantidad anterior, la
+ * diferencia, la nueva cantidad, el usuario responsable y la fecha.
+ */
+export async function ajustarInventario(
+  tipo: "tienda" | "cd",
+  locationId: number,
+  productId: string,
+  nuevaCantidad: number,
+): Promise<AjusteInventarioResult> {
+  const body =
+    tipo === "tienda"
+      ? { tiendaId: locationId, productoId: Number(productId), nuevaCantidad }
+      : { centroDistribucionId: locationId, productoId: Number(productId), nuevaCantidad };
+
+  return apiFetch<AjusteInventarioResult>("/api/inventario/ajustes", {
+    method: "POST",
+    body,
+    fallback: "No se pudo ajustar el inventario",
+    errors: AJUSTE_ERRORS,
+    forbidden: "No tienes permisos para ajustar este inventario.",
+  });
 }

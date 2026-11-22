@@ -129,7 +129,7 @@ export default function UsersPanel({
 
     const asignacion = u.asignacion;
     if (!asignacion) {
-      return <span className="text-slate-400 text-xs italic">Sin asignación</span>;
+      return <span className="text-[var(--text-faint)] text-xs italic">Sin asignación</span>;
     }
 
     const nombre = asignacion.nombre ?? `#${asignacion.id}`;
@@ -138,7 +138,7 @@ export default function UsersPanel({
       return (
         <span
           title={nombre}
-          className="inline-flex items-start gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 max-w-[190px] cursor-default"
+          className="inline-flex items-start gap-1.5 text-xs font-medium text-[var(--success-dark)] bg-[var(--success-pale)] px-2.5 py-1 rounded-md border border-[var(--success-border)] max-w-[190px] cursor-default"
         >
           <span className="shrink-0 mt-0.5">🏪</span>
           <span className="line-clamp-2 break-words leading-tight">{nombre}</span>
@@ -149,7 +149,7 @@ export default function UsersPanel({
     return (
       <span
         title={nombre}
-        className="inline-flex items-start gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 max-w-[190px] cursor-default"
+        className="inline-flex items-start gap-1.5 text-xs font-medium text-[var(--warning-dark)] bg-[var(--warning-pale)] px-2.5 py-1 rounded-md border border-[var(--warning-border)] max-w-[190px] cursor-default"
       >
         <span className="shrink-0 mt-0.5">📦</span>
         <span className="line-clamp-2 break-words leading-tight">{nombre}</span>
@@ -310,7 +310,7 @@ export default function UsersPanel({
   const renderErrorBox = (message: string | null) => {
     if (!message) return null;
     return (
-      <div className="flex items-start gap-2.5 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3.5 py-2.5 border border-red-200">
+      <div className="flex items-start gap-2.5 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3.5 py-2.5 border border-[var(--danger-border)]">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
         </svg>
@@ -370,10 +370,10 @@ export default function UsersPanel({
       {openMenuId === u.id && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 mt-1.5 w-52 rounded-lg shadow-xl border border-[var(--border)] z-50 py-1 bg-white"
+          className="absolute right-0 mt-1.5 w-52 rounded-lg shadow-xl border border-[var(--border)] z-50 py-1 bg-[var(--surface)]"
         >
           <div
-            className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider truncate"
+            className="px-3 py-1.5 border-b border-[var(--surface-muted)] text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider truncate"
             title={u.name}
           >
             {u.name}
@@ -381,7 +381,7 @@ export default function UsersPanel({
 
           {/* Regla: Administrador es inmutable, no se puede cambiar rol ni eliminar */}
           {u.role === "admin" ? (
-            <div className="px-3.5 py-2.5 text-xs text-amber-700 bg-amber-50/60 flex items-center gap-2">
+            <div className="px-3.5 py-2.5 text-xs text-[var(--warning-medium)] bg-[var(--warning-pale-t)] flex items-center gap-2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="shrink-0">
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
               </svg>
@@ -399,7 +399,7 @@ export default function UsersPanel({
                   setRoleForm(u.role === "admin" ? "store" : u.role);
                   setRoleError(null);
                 }}
-                className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-[var(--text-dim)] hover:bg-[var(--hover-bg-light)] transition cursor-pointer"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
@@ -419,7 +419,7 @@ export default function UsersPanel({
                     setAssignForm({ targetId: u.asignacion ? String(u.asignacion.id) : "" });
                     setAssignError(null);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-[var(--text-dim)] hover:bg-[var(--hover-bg-light)] transition cursor-pointer"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
@@ -429,7 +429,7 @@ export default function UsersPanel({
                 </button>
               )}
 
-              <div className="border-t border-gray-100 my-1" />
+              <div className="border-t border-[var(--surface-muted)] my-1" />
 
               {/* Opción 3: Eliminar usuario (nunca permitido para admin) */}
               <button
@@ -439,7 +439,7 @@ export default function UsersPanel({
                   setShowDelete(u);
                   setDeleteError(null);
                 }}
-                className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-red-600 hover:bg-red-50 transition cursor-pointer"
+                className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-[var(--danger)] hover:bg-[var(--danger-pale)] transition cursor-pointer"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -610,20 +610,24 @@ export default function UsersPanel({
                 </option>
                 {showAssign.role === "store" && (
                   <optgroup label="Tiendas disponibles">
-                    {localStores.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} · {s.city}
-                      </option>
-                    ))}
+                    {localStores
+                      .filter((s) => s.status === "active")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} · {s.city}
+                        </option>
+                      ))}
                   </optgroup>
                 )}
                 {showAssign.role === "dc" && (
                   <optgroup label="Centros de distribución disponibles">
-                    {localDCs.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} · {d.address}
-                      </option>
-                    ))}
+                    {localDCs
+                      .filter((d) => d.status === "active")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} · {d.address}
+                        </option>
+                      ))}
                   </optgroup>
                 )}
               </Select>
@@ -649,7 +653,7 @@ export default function UsersPanel({
           <div className="space-y-4">
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
               ¿Estás seguro de eliminar permanentemente a <strong className="text-[var(--text)]">{showDelete.name}</strong> ({showDelete.email})?
-              Esta acción llamará a <code className="text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-800">DELETE /api/usuarios/{showDelete.id}</code> en el backend.
+              Esta acción llamará a <code className="text-xs bg-[var(--neutral-bg)] px-1 py-0.5 rounded text-[var(--text-strong)]">DELETE /api/usuarios/{showDelete.id}</code> en el backend.
             </p>
 
             {renderErrorBox(deleteError)}

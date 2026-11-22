@@ -1,5 +1,6 @@
 import type { DC } from "../types";
 import { apiFetch, type ErrorTranslations } from "./http";
+import { isMocksEnabled, getMockDCs } from "./mocks";
 
 export interface BackendCentroDistribucion {
   id: number;
@@ -9,6 +10,7 @@ export interface BackendCentroDistribucion {
   capacidad: number;
   encargadoId?: number | null;
   tiendasAbastecidasIds?: number[];
+  estado?: string;
 }
 
 const CD_ERRORS: ErrorTranslations = [
@@ -27,13 +29,14 @@ const CD_ERRORS: ErrorTranslations = [
 const CD_FORBIDDEN = "No tienes permisos de administrador para gestionar centros de distribución.";
 
 export function mapBackendCDToFrontend(backendCD: BackendCentroDistribucion): DC {
+  const estado = backendCD.estado?.toLowerCase() ?? "";
   return {
     id: backendCD.id,
     name: backendCD.nombre,
     address: backendCD.direccion,
     capacity: backendCD.capacidad ?? 0,
     coverage: backendCD.tiendasAbastecidasIds ?? [],
-    status: "active",
+    status: estado.startsWith("inact") ? "inactive" : "active",
     encargadoId: backendCD.encargadoId ?? undefined,
   };
 }
@@ -41,8 +44,14 @@ export function mapBackendCDToFrontend(backendCD: BackendCentroDistribucion): DC
 /**
  * Consulta la lista de centros de distribución desde el backend.
  * Endpoint: GET /api/centros-distribucion
+ *
+ * Cuando VITE_USE_MOCKS === 'true', devuelve los CDs del store único en
+ * memoria (con el overlay de estados aplicado).
  */
 export async function getCentrosDistribucion(): Promise<DC[]> {
+  if (isMocksEnabled()) {
+    return getMockDCs();
+  }
   const data = await apiFetch<BackendCentroDistribucion[]>("/api/centros-distribucion", {
     fallback: "No se pudieron obtener los centros de distribución",
     errors: CD_ERRORS,
@@ -50,6 +59,32 @@ export async function getCentrosDistribucion(): Promise<DC[]> {
   });
 
   return data.map(mapBackendCDToFrontend);
+}
+
+/**
+ * Activa o desactiva un centro de distribución.
+ * Endpoint: PATCH /api/centros-distribucion/{id}/estado
+ *
+ * Si se desactiva con tiendas asignadas, el backend responde 409; en ese caso
+ * hay que reintentar con confirmarConTiendasAsignadas: true.
+ */
+export async function cambiarEstadoCentroDistribucion(
+  id: number,
+  activo: boolean,
+  confirmarConTiendasAsignadas?: boolean,
+): Promise<DC> {
+  const updated = await apiFetch<BackendCentroDistribucion>(
+    `/api/centros-distribucion/${id}/estado`,
+    {
+      method: "PATCH",
+      body: { activo, confirmarConTiendasAsignadas },
+      fallback: `No se pudo actualizar el estado del centro de distribución #${id}`,
+      errors: CD_ERRORS,
+      forbidden: CD_FORBIDDEN,
+    },
+  );
+
+  return mapBackendCDToFrontend(updated);
 }
 
 /**
