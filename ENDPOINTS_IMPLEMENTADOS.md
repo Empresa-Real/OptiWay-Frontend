@@ -157,12 +157,6 @@ Los siguientes endpoints no están implementados en el backend. Los servicios qu
 - [ ] **`GET /api/ordenes`**
   - *Función frontend:* `getOrdenes()` en [`src/services/ordenes.ts`](./src/services/ordenes.ts)
   - *Uso:* Consultar órdenes pendientes al desactivar tienda (HU-08) y listar órdenes reales del Planificador (HU-21).
-- [ ] **`PATCH /api/tiendas/{id}/estado`**
-  - *Función frontend:* `desactivarTienda(id)` en [`src/services/tiendas.ts`](./src/services/tiendas.ts)
-  - *Uso:* Desactivar tienda (HU-08).
-- [ ] **`PATCH /api/centros-distribucion/{id}/estado`**
-  - *Función frontend:* `desactivarCentroDistribucion(id)` en [`src/services/centrosDistribucion.ts`](./src/services/centrosDistribucion.ts)
-  - *Uso:* Desactivar centro de distribución (HU-10).
 - [ ] **`GET /api/ventas/historial?tiendaId=&productoId=&desde=&hasta=`**
   - *Función frontend:* `getHistorialVentas(params)` en [`src/services/historialVentas.ts`](./src/services/historialVentas.ts)
   - *Uso:* Historial de ventas para patrones de demanda y rotación (HU-19, HU-27).
@@ -175,5 +169,9 @@ Los siguientes endpoints no están implementados en el backend. Los servicios qu
   - *Uso:* Historial dedicado de una recomendación. **Flujo local:** se construye a partir de los campos de auditoría de la respuesta.
 - [ ] **Transición de estado de la solicitud al crear una recomendación**
   - *Uso:* Marcar la solicitud como atendida. **Flujo local:** no se marca; el Planificador sigue viendo la solicitud como pendiente.
+- [x] **`PATCH /api/tiendas/{id}/estado`** (desactivar/activar tienda)
+  - *Uso:* cambia el estado activo/inactivo con validación de órdenes en tránsito y confirmación opcional. El frontend usa `cambiarEstadoTienda()`.
+- [x] **`PATCH /api/centros-distribucion/{id}/estado`** (desactivar/activar CD)
+  - *Uso:* cambia el estado activo/inactivo con validación de tiendas asignadas y confirmación opcional. El frontend usa `cambiarEstadoCentroDistribucion()`.
 - [ ] **`GET /api/inventario/ajustes`**
   - *Uso:* Historial persistente de ajustes. **Flujo local:** el modal solo muestra los ajustes de la sesión tomados del `POST`.

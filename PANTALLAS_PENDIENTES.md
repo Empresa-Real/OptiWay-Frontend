@@ -35,8 +35,8 @@ Todas las pantallas listadas ya leen y escriben contra la API. El archivo
 | Pantalla | Endpoints conectados |
 |---|---|
 | `src/pages/admin/UsersPanel.tsx` | `GET/POST /api/usuarios`, `PATCH /api/usuarios/{id}/rol`, `DELETE /api/usuarios/{id}`, `GET /api/tiendas`, `GET /api/centros-distribucion` |
-| `src/pages/admin/StoresPanel.tsx` | `GET/POST /api/tiendas`, `PUT /api/tiendas/{id}/encargado` |
-| `src/pages/admin/DCsPanel.tsx` | `GET/POST /api/centros-distribucion`, `PUT /api/centros-distribucion/{id}/encargado` |
+| `src/pages/admin/StoresPanel.tsx` | `GET/POST /api/tiendas`, `PUT /api/tiendas/{id}/encargado`, `PATCH /api/tiendas/{id}/estado` |
+| `src/pages/admin/DCsPanel.tsx` | `GET/POST /api/centros-distribucion`, `PUT /api/centros-distribucion/{id}/encargado`, `PATCH /api/centros-distribucion/{id}/estado` |
 | `src/pages/admin/ProductsPanel.tsx` | `GET/POST /api/productos`, `PUT /api/productos/{id}`, `PUT /api/productos/{id}/estado` |
 | `src/pages/shared/InventoryView.tsx` | `GET /api/inventario`, `GET /api/inventario/centro-distribucion`, `POST /api/inventario/ajustes` |
 | `src/pages/store/RegisterSale.tsx` | `POST /api/tiendas/{id}/ventas` |

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { DC, Store } from "../../types";
-import { getCentrosDistribucion, createCentroDistribucion, desactivarCentroDistribucion } from "../../services/centrosDistribucion";
+import { getCentrosDistribucion, createCentroDistribucion, cambiarEstadoCentroDistribucion } from "../../services/centrosDistribucion";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
 
 function ErrorBanner({ message }: { message: string }) {
@@ -98,31 +98,38 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
     }
   };
 
-  const requestDeactivate = (dc: DC) => {
-    if (dc.status === "inactive") {
-      setError("Este centro de distribución ya está inactivo");
-      return;
-    }
+  const requestStatusChange = (dc: DC) => {
     setShowDeactivate(dc);
     setDeactivateError("");
   };
 
-  const handleDeactivate = async () => {
+  const handleStatusChange = async () => {
     if (!showDeactivate) return;
+    const target = showDeactivate;
+    const activo = target.status === "inactive";
+
     setDeactivating(true);
     setDeactivateError("");
     setError("");
     try {
-      await desactivarCentroDistribucion(showDeactivate.id);
+      await cambiarEstadoCentroDistribucion(
+        target.id,
+        activo,
+        !activo ? true : undefined,
+      );
       const updatedDCs = dcs.map((d) =>
-        d.id === showDeactivate!.id ? { ...d, status: "inactive" as const } : d,
+        d.id === target.id ? { ...d, status: activo ? ("active" as const) : ("inactive" as const) } : d,
       );
       setDCs(updatedDCs);
       onUpdateDCs?.(updatedDCs);
-      setSuccessMessage("Centro de distribución desactivado");
+      setSuccessMessage(
+        activo
+          ? "Centro de distribución reactivado"
+          : "Centro de distribución desactivado",
+      );
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setDeactivateError(err?.message || "No se pudo desactivar el centro de distribución.");
+      setDeactivateError(err?.message || "No se pudo actualizar el estado del centro de distribución.");
     } finally {
       setDeactivating(false);
       setShowDeactivate(null);
@@ -147,8 +154,8 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
     <Badge key={`badge-${d.id}`} variant={d.status === "active" ? "success" : "neutral"}>
       {d.status === "active" ? "Activo" : "Inactivo"}
     </Badge>,
-    <Btn key={`btn-${d.id}`} size="sm" variant="ghost" onClick={() => requestDeactivate(d)}>
-      Desactivar
+    <Btn key={`btn-${d.id}`} size="sm" variant="ghost" onClick={() => requestStatusChange(d)}>
+      {d.status === "active" ? "Desactivar" : "Reactivar"}
     </Btn>,
   ]);
 
@@ -274,30 +281,47 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
       )}
 
       {showDeactivate && (
-        <Modal title="Desactivar centro de distribución" onClose={() => !deactivating && setShowDeactivate(null)}>
+        <Modal
+          title={
+            showDeactivate.status === "inactive"
+              ? "Reactivar centro de distribución"
+              : "Desactivar centro de distribución"
+          }
+          onClose={() => !deactivating && setShowDeactivate(null)}
+        >
           <div className="space-y-5">
-            <div className="rounded-md border border-[var(--warning)] bg-[var(--warning-light)] p-4 text-sm text-[var(--text)]">
-              <p>
-                Este centro de distribución tiene las siguientes tiendas en su zona de cobertura:
+            {showDeactivate.status === "inactive" ? (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {showDeactivate.name} volverá a estar activo para abastecer tiendas.
               </p>
-              <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
-                {showDeactivate.coverage
-                  .map((id) => stores.find((s) => s.id === id))
-                  .filter((s): s is Store => Boolean(s))
-                  .map((s) => (
-                    <li key={s.id}>
-                      {s.name} — {s.city}
-                    </li>
-                  ))}
-              </ul>
-              <p className="mt-3 font-medium">¿Deseas desactivarlo de todas formas?</p>
-            </div>
+            ) : (
+              <div className="rounded-md border border-[var(--warning)] bg-[var(--warning-light)] p-4 text-sm text-[var(--text)]">
+                <p>
+                  Este centro de distribución tiene las siguientes tiendas en su zona de cobertura:
+                </p>
+                <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
+                  {showDeactivate.coverage
+                    .map((id) => stores.find((s) => s.id === id))
+                    .filter((s): s is Store => Boolean(s))
+                    .map((s) => (
+                      <li key={s.id}>
+                        {s.name} — {s.city}
+                      </li>
+                    ))}
+                </ul>
+                <p className="mt-3 font-medium">¿Deseas desactivarlo de todas formas?</p>
+              </div>
+            )}
             <div className="flex gap-2">
               <Btn variant="secondary" onClick={() => setShowDeactivate(null)} disabled={deactivating}>
                 Cancelar
               </Btn>
-              <Btn onClick={handleDeactivate} disabled={deactivating}>
-                Confirmar desactivación
+              <Btn onClick={handleStatusChange} disabled={deactivating}>
+                {deactivating
+                  ? "Guardando..."
+                  : showDeactivate.status === "inactive"
+                    ? "Reactivar"
+                    : "Confirmar desactivación"}
               </Btn>
             </div>
           </div>

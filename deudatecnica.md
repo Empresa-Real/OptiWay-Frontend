@@ -56,15 +56,12 @@ La suite actual tiene **78 tests unitarios en 8 archivos** y 3 tests live, ejecu
 
 ### 4.0 Store de mocks y modo VITE_USE_MOCKS (Sprint 3)
 
-Se mantiene `src/services/mocks/` para los endpoints que siguen pendientes:
+Se mantiene `src/services/mocks/` para los endpoints que aún no tienen conexión real con backend:
 - `ordenes.ts` (`GET /api/ordenes`, `GET /api/centros-distribucion/{id}/ordenes`).
-- `desactivarTienda` y `desactivarCentroDistribucion`.
 - `historialVentas.ts` (patrones de demanda y rotación).
 
-Las integraciones de Sprint 3 ya usan el backend real y no dependen de `VITE_USE_MOCKS`:
-- `solicitudesReposicion.ts`: `POST /api/tiendas/{id}/solicitudes-reposicion` y `GET /api/solicitudes-reposicion`.
-- `recomendaciones.ts`: `GET/POST /api/recomendaciones-reposicion`, `PATCH .../aprobar` y `PATCH .../rechazar`.
-- `inventario.ts`: `POST /api/inventario/ajustes`; las consultas de inventario ya no aplican overlay de mocks y después del ajuste se recarga el inventario desde el backend.
+Los servicios de estado (`desactivarTienda` / `desactivarCentroDistribucion`) ya no dependen de `VITE_USE_MOCKS`:
+- `cambiarEstadoTienda` y `cambiarEstadoCentroDistribucion` conectan contra los `PATCH` reales (`/api/tiendas/{id}/estado` y `/api/centros-distribucion/{id}/estado`) y lanzan `Error("Endpoint pendiente de backend")` si no hay sesión o el token es inválido.
 
 No se agregó ninguna dependencia nueva.
 
@@ -96,9 +93,16 @@ El botón de eliminar usuario usa `hover:bg-red-700`, que no resuelve a ningún 
 
 ### 4.6 Falta de pruebas para servicios nuevos
 
-Los servicios nuevos del Sprint 3 (`ordenes.ts`, `tiendas.ts` función `desactivarTienda`, `centrosDistribucion.ts` función `desactivarCentroDistribucion`, `inventario.ts` función `ajustarInventario`, `historialVentas.ts`, `solicitudesReposicion.ts`, `recomendaciones.ts`) carecen de pruebas unitarias. No se agregaron pruebas de componentes React para las pantallas nuevas del planner, tienda ni CD.
+Los servicios nuevos del Sprint 3 (`ordenes.ts`, `cambiarEstadoTienda` en `tiendas.ts`, `cambiarEstadoCentroDistribucion` en `centrosDistribucion.ts`, `inventario.ts` función `ajustarInventario`, `historialVentas.ts`, `solicitudesReposicion.ts`, `recomendaciones.ts`) carecen de pruebas unitarias. No se agregaron pruebas de componentes React para las pantallas nuevas del planner, tienda ni CD.
 
 La suite existente (78 tests) pasa usando variables de Supabase de prueba. Sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, `createClient` falla al importar `src/services/supabase.ts` y los suites no llegan a ejecutarse.
+
+### 4.8 Nuevos servicios integrados sin pruebas unitarias
+
+Los dos servicios nuevos que conectan con endpoints reales (`cambiarEstadoTienda`, `cambiarEstadoCentroDistribucion`) no tienen pruebas unitarias. Se recomienda añadir tests que cubran:
+- Cambio de estado exitoso.
+- Error 409 al intentar desactivar con órdenes en tránsido / tiendas en cobertura sin confirmar.
+- Flujo de confirmación (`confirmarConOrdenesEnTransito`, `confirmarConTiendasAsignadas`).
 
 ### 4.7 Eliminación de diccionarios locales de traducción de errores (`ErrorTranslations`)
 

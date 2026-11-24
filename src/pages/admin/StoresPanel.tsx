@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import type { Store, Order } from "../../types";
+import type { Store } from "../../types";
 import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
-import { getTiendas, createTienda, desactivarTienda } from "../../services/tiendas";
-import { getOrdenes } from "../../services/ordenes";
+import { getTiendas, createTienda, cambiarEstadoTienda } from "../../services/tiendas";
+import { ApiError } from "../../services/http";
 
 interface StoresPanelProps {
   stores?: Store[];
@@ -21,8 +21,7 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
   const [showDeactivate, setShowDeactivate] = useState<Store | null>(null);
   const [deactivating, setDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState("");
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const loadStores = async (isInitial = false) => {
     if (!isInitial) setRefreshing(true);
@@ -70,50 +69,44 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
     }
   };
 
-  const requestDeactivate = async (store: Store) => {
-    if (store.status === "inactive") {
-      setError("Esta tienda ya está inactiva");
-      return;
-    }
+  const requestStatusChange = (store: Store) => {
     setShowDeactivate(store);
     setDeactivateError("");
-    setPendingOrders([]);
-    setOrdersLoading(true);
-    try {
-      const allOrders = await getOrdenes();
-      const pending = allOrders.filter(
-        (o) => o.destStoreId === store.id && o.status.toLowerCase() !== "recibida",
-      );
-      setPendingOrders(pending);
-    } catch (err: any) {
-      setDeactivateError(
-        err?.message || "No se pudieron consultar las órdenes pendientes.",
-      );
-      setPendingOrders([]);
-    } finally {
-      setOrdersLoading(false);
-    }
+    setNeedsConfirmation(false);
   };
 
-  const handleDeactivate = async () => {
+  const handleStatusChange = async () => {
     if (!showDeactivate) return;
+    const target = showDeactivate;
+    const activo = target.status === "inactive";
+
     setDeactivating(true);
     setDeactivateError("");
     setError("");
     try {
-      await desactivarTienda(showDeactivate.id);
+      await cambiarEstadoTienda(target.id, activo, needsConfirmation || undefined);
       const updatedStores = stores.map((s) =>
-        s.id === showDeactivate!.id ? { ...s, status: "inactive" as const } : s,
+        s.id === target.id ? { ...s, status: activo ? ("active" as const) : ("inactive" as const) } : s,
       );
       setStores(updatedStores);
       onUpdateStores?.(updatedStores);
-      setSuccessMessage("Tienda desactivada");
+      setSuccessMessage(activo ? "Tienda reactivada" : "Tienda desactivada");
       setTimeout(() => setSuccessMessage(null), 3000);
+      setShowDeactivate(null);
+      setNeedsConfirmation(false);
     } catch (err: any) {
-      setDeactivateError(err?.message || "No se pudo desactivar la tienda.");
+      if (
+        !activo &&
+        err instanceof ApiError &&
+        err.status === 409 &&
+        /confirmaci[oó]n/i.test(err.message)
+      ) {
+        setNeedsConfirmation(true);
+        return;
+      }
+      setDeactivateError(err?.message || "No se pudo actualizar el estado de la tienda.");
     } finally {
       setDeactivating(false);
-      setShowDeactivate(null);
     }
   };
 
@@ -128,8 +121,8 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
     <Badge variant={s.status === "active" ? "success" : "neutral"}>
       {s.status === "active" ? "Activa" : "Inactiva"}
     </Badge>,
-    <Btn size="sm" variant="ghost" onClick={() => requestDeactivate(s)}>
-      Desactivar
+    <Btn size="sm" variant="ghost" onClick={() => requestStatusChange(s)}>
+      {s.status === "active" ? "Desactivar" : "Reactivar"}
     </Btn>,
   ]);
 
@@ -233,18 +226,22 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
       )}
 
       {showDeactivate && (
-        <Modal title="Desactivar tienda" onClose={() => !deactivating && setShowDeactivate(null)}>
+        <Modal
+          title={
+            showDeactivate.status === "inactive"
+              ? "Reactivar tienda"
+              : "Desactivar tienda"
+          }
+          onClose={() => !deactivating && setShowDeactivate(null)}
+        >
           <div className="space-y-5">
-            {pendingOrders.length > 0 ? (
+            {showDeactivate.status === "inactive" ? (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {showDeactivate.name} volverá a recibir asignaciones de usuarios e inventario.
+              </p>
+            ) : needsConfirmation ? (
               <div className="rounded-md border border-[var(--warning)] bg-[var(--warning-light)] p-4 text-sm text-[var(--text)]">
-                <p>Esta tienda tiene órdenes de reposición pendientes de recibir:</p>
-                <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
-                  {pendingOrders.map((order) => (
-                    <li key={order.id}>
-                      Orden #{order.id} — {order.productId} — {order.quantity} uds — {order.status}
-                    </li>
-                  ))}
-                </ul>
+                <p>La tienda tiene órdenes de reposición en tránsito o enviadas.</p>
                 <p className="mt-3 font-medium">¿Deseas desactivarla de todas formas?</p>
               </div>
             ) : (
@@ -253,11 +250,17 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
               </p>
             )}
             <div className="flex gap-2">
-              <Btn variant="secondary" onClick={() => setShowDeactivate(null)} disabled={deactivating || ordersLoading}>
+              <Btn variant="secondary" onClick={() => setShowDeactivate(null)} disabled={deactivating}>
                 Cancelar
               </Btn>
-              <Btn onClick={handleDeactivate} disabled={deactivating || ordersLoading}>
-                {pendingOrders.length > 0 ? "Confirmar desactivación" : "Desactivar"}
+              <Btn onClick={handleStatusChange} disabled={deactivating}>
+                {deactivating
+                  ? "Guardando..."
+                  : showDeactivate.status === "inactive"
+                    ? "Reactivar"
+                    : needsConfirmation
+                      ? "Confirmar desactivación"
+                      : "Desactivar"}
               </Btn>
             </div>
           </div>

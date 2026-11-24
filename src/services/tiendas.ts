@@ -1,11 +1,6 @@
 import type { Store } from "../types";
 import { apiFetch, type ErrorTranslations } from "./http";
-import {
-  isMocksEnabled,
-  getMockStores,
-  setStoreStatus,
-  initMockStore,
-} from "./mocks";
+import { isMocksEnabled, getMockStores, initMockStore } from "./mocks";
 
 export interface BackendTienda {
   id: number;
@@ -72,16 +67,29 @@ export async function getTiendas(): Promise<Store[]> {
 }
 
 /**
- * Desactiva una tienda (pone su estado en "inactive").
+ * Activa o desactiva una tienda.
  * Endpoint: PATCH /api/tiendas/{id}/estado
+ *
+ * Si se desactiva con órdenes en tránsito, el backend responde 409; en ese
+ * caso hay que reintentar con confirmarConOrdenesEnTransito: true.
  */
-// TODO(backend): PATCH /api/tiendas/{id}/estado
-export async function desactivarTienda(id: number): Promise<void> {
-  if (isMocksEnabled()) {
-    setStoreStatus(id, "inactive");
-    return;
-  }
-  throw new Error("Endpoint pendiente de backend");
+export async function cambiarEstadoTienda(
+  id: number,
+  activo: boolean,
+  confirmarConOrdenesEnTransito?: boolean,
+): Promise<Store> {
+  const updated = await apiFetch<BackendTienda>(
+    `/api/tiendas/${id}/estado`,
+    {
+      method: "PATCH",
+      body: { activo, confirmarConOrdenesEnTransito },
+      fallback: `No se pudo actualizar el estado de la tienda #${id}`,
+      errors: TIENDA_ERRORS,
+      forbidden: TIENDA_FORBIDDEN,
+    },
+  );
+
+  return mapBackendTiendaToFrontend(updated);
 }
 
 /**
