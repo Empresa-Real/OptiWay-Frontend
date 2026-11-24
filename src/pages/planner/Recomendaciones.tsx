@@ -391,12 +391,19 @@ export default function Recomendaciones({
               {ordenesAprobadas.map((o) => (
                 <div
                   key={o.id}
-                  className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 text-sm"
+                  className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--border)] last:border-0"
                 >
-                  <span className="font-medium">
-                    {nombreProducto(o.productId, o.nombreProducto)} — {o.quantity} uds
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text)] leading-snug">
+                      {nombreProducto(o.productId, o.nombreProducto)}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      {nombreTienda(o.destStoreId)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs font-medium text-[var(--text)]">
+                    {o.quantity} uds
                   </span>
-                  <span className="text-[var(--text-muted)]">{nombreTienda(o.destStoreId)}</span>
                 </div>
               ))}
             </div>
