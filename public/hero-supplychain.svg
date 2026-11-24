@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="960" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="55%" stop-color="#111c33"/>
+      <stop offset="100%" stop-color="#0f2547"/>
+    </linearGradient>
+    <radialGradient id="glowCenter" cx="50%" cy="48%" r="48%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.32"/>
+      <stop offset="60%" stop-color="#1d4ed8" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Base & Grid -->
+  <rect width="960" height="640" fill="url(#bgGrad)"/>
+  <rect width="960" height="640" fill="url(#grid)"/>
+  <rect width="960" height="640" fill="url(#glowCenter)"/>
+
+  <!-- Decorative radar rings -->
+  <circle cx="480" cy="315" r="145" stroke="#3b82f6" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="6 6"/>
+  <circle cx="480" cy="315" r="240" stroke="#38bdf8" stroke-opacity="0.11" stroke-width="1"/>
+  <circle cx="480" cy="315" r="335" stroke="#60a5fa" stroke-opacity="0.07" stroke-width="1" stroke-dasharray="4 8"/>
+
+  <!-- Supply route arcs from central DC hub (480, 315) to store nodes -->
+  <path d="M480 315 Q320 200 185 165" stroke="url(#routeGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M480 315 Q650 185 775 155" stroke="url(#routeGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M480 315 Q290 380 155 460" stroke="url(#routeGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M480 315 Q670 390 795 470" stroke="url(#routeGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M480 315 Q480 165 480 95" stroke="url(#routeGrad)" stroke-width="2" stroke-dasharray="5 5"/>
+
+  <!-- Route pulse dots -->
+  <circle cx="330" cy="230" r="4.5" fill="#38bdf8"/>
+  <circle cx="645" cy="215" r="4.5" fill="#38bdf8"/>
+  <circle cx="305" cy="385" r="4.5" fill="#60a5fa"/>
+  <circle cx="655" cy="395" r="4.5" fill="#60a5fa"/>
+
+  <!-- Store Node 1 (Top Left) -->
+  <g transform="translate(115, 115)">
+    <rect width="140" height="84" rx="12" fill="url(#cardGrad)" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="14" y="16" width="28" height="28" rx="7" fill="#1d4ed8" fill-opacity="0.3" stroke="#60a5fa" stroke-opacity="0.6"/>
+    <path d="M21 29l7-5 7 5v7a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1z" stroke="#93c5fd" stroke-width="1.6" fill="none"/>
+    <rect x="52" y="20" width="66" height="8" rx="4" fill="#cbd5e1" fill-opacity="0.75"/>
+    <rect x="52" y="34" width="44" height="6" rx="3" fill="#64748b" fill-opacity="0.7"/>
+    <rect x="14" y="58" width="112" height="8" rx="4" fill="#1e293b"/>
+    <rect x="14" y="58" width="84" height="8" rx="4" fill="#38bdf8"/>
+  </g>
+
+  <!-- Store Node 2 (Top Right) -->
+  <g transform="translate(705, 105)">
+    <rect width="140" height="84" rx="12" fill="url(#cardGrad)" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="14" y="16" width="28" height="28" rx="7" fill="#1d4ed8" fill-opacity="0.3" stroke="#60a5fa" stroke-opacity="0.6"/>
+    <path d="M21 29l7-5 7 5v7a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1z" stroke="#93c5fd" stroke-width="1.6" fill="none"/>
+    <rect x="52" y="20" width="68" height="8" rx="4" fill="#cbd5e1" fill-opacity="0.75"/>
+    <rect x="52" y="34" width="48" height="6" rx="3" fill="#64748b" fill-opacity="0.7"/>
+    <rect x="14" y="58" width="112" height="8" rx="4" fill="#1e293b"/>
+    <rect x="14" y="58" width="96" height="8" rx="4" fill="#22c55e" fill-opacity="0.85"/>
+  </g>
+
+  <!-- Store Node 3 (Bottom Left) -->
+  <g transform="translate(95, 425)">
+    <rect width="150" height="86" rx="12" fill="url(#cardGrad)" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="14" y="16" width="28" height="28" rx="7" fill="#0284c7" fill-opacity="0.28" stroke="#38bdf8" stroke-opacity="0.6"/>
+    <path d="M21 29l7-5 7 5v7a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1z" stroke="#7dd3fc" stroke-width="1.6" fill="none"/>
+    <rect x="52" y="20" width="76" height="8" rx="4" fill="#cbd5e1" fill-opacity="0.75"/>
+    <rect x="52" y="34" width="52" height="6" rx="3" fill="#64748b" fill-opacity="0.7"/>
+    <rect x="14" y="58" width="122" height="8" rx="4" fill="#1e293b"/>
+    <rect x="14" y="58" width="64" height="8" rx="4" fill="#f59e0b" fill-opacity="0.9"/>
+  </g>
+
+  <!-- Store Node 4 (Bottom Right) -->
+  <g transform="translate(715, 430)">
+    <rect width="150" height="86" rx="12" fill="url(#cardGrad)" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="14" y="16" width="28" height="28" rx="7" fill="#1d4ed8" fill-opacity="0.3" stroke="#60a5fa" stroke-opacity="0.6"/>
+    <path d="M21 29l7-5 7 5v7a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1z" stroke="#93c5fd" stroke-width="1.6" fill="none"/>
+    <rect x="52" y="20" width="72" height="8" rx="4" fill="#cbd5e1" fill-opacity="0.75"/>
+    <rect x="52" y="34" width="46" height="6" rx="3" fill="#64748b" fill-opacity="0.7"/>
+    <rect x="14" y="58" width="122" height="8" rx="4" fill="#1e293b"/>
+    <rect x="14" y="58" width="102" height="8" rx="4" fill="#3b82f6"/>
+  </g>
+
+  <!-- Top Analytics Pill -->
+  <g transform="translate(385, 48)">
+    <rect width="190" height="48" rx="24" fill="url(#cardGrad)" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1.5"/>
+    <circle cx="26" cy="24" r="6" fill="#22c55e"/>
+    <rect x="44" y="16" width="118" height="7" rx="3.5" fill="#e2e8f0" fill-opacity="0.85"/>
+    <rect x="44" y="29" width="80" height="5" rx="2.5" fill="#64748b" fill-opacity="0.8"/>
+  </g>
+
+  <!-- Central Distribution Center Hub -->
+  <g transform="translate(370, 225)">
+    <rect width="220" height="175" rx="18" fill="url(#cardGrad)" stroke="#3b82f6" stroke-opacity="0.65" stroke-width="2"/>
+    <!-- Warehouse roof / header accent -->
+    <path d="M24 44 L110 18 L196 44" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Isometric-style cargo/shelf blocks -->
+    <rect x="28" y="62" width="48" height="36" rx="6" fill="#1d4ed8" fill-opacity="0.45" stroke="#60a5fa" stroke-opacity="0.6"/>
+    <rect x="86" y="62" width="48" height="36" rx="6" fill="#0284c7" fill-opacity="0.45" stroke="#38bdf8" stroke-opacity="0.6"/>
+    <rect x="144" y="62" width="48" height="36" rx="6" fill="#2563eb" fill-opacity="0.45" stroke="#60a5fa" stroke-opacity="0.6"/>
+    <!-- Telemetry bars -->
+    <rect x="28" y="116" width="164" height="10" rx="5" fill="#1e293b"/>
+    <rect x="28" y="116" width="128" height="10" rx="5" fill="#3b82f6"/>
+    <rect x="28" y="136" width="164" height="10" rx="5" fill="#1e293b"/>
+    <rect x="28" y="136" width="96" height="10" rx="5" fill="#38bdf8"/>
+  </g>
+</svg>
