@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { UserRole } from "../types";
 import { ContrastToggle } from "./ContrastToggle";
 
@@ -49,7 +50,7 @@ const LABEL_BY_ROLE: Record<UserRole, string> = {
 
 function NavIcon({ d }: { d: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d={d} />
     </svg>
   );
@@ -93,62 +94,133 @@ function Sidebar({
   // Sin fallback: un rol no mapeado no hereda el menú de otro.
   const navItems = NAV_BY_ROLE[role] ?? [];
   const roleLabel = LABEL_BY_ROLE[role] ?? "";
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem("optiway-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("optiway-sidebar-collapsed", String(next));
+      } catch {
+        // Ignorar errores de almacenamiento
+      }
+      return next;
+    });
+  };
+
+  const sidebarWidth = collapsed ? "68px" : "var(--sidebar-w)";
 
   return (
     <aside
-      style={{ width: "var(--sidebar-w)", minWidth: "var(--sidebar-w)", background: "var(--sidebar-bg)" }}
-      className="flex flex-col h-full"
+      style={{ width: sidebarWidth, minWidth: sidebarWidth, background: "var(--sidebar-bg)" }}
+      className="flex flex-col h-full transition-all duration-200 overflow-hidden shrink-0"
     >
-      {/* Logo */}
-      <div className="px-5 pt-6 pb-4 border-b border-[var(--sidebar-border)]">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
+      {/* Logo + collapse toggle */}
+      <div className={`pt-5 pb-4 border-b border-[var(--sidebar-border)] ${collapsed ? "px-2" : "px-4"}`}>
+        <div className={`flex items-center ${collapsed ? "flex-col gap-3" : "justify-between gap-2"}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
+              </svg>
+            </div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <span className="text-[var(--sidebar-text)] font-semibold text-sm tracking-tight block leading-tight truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Opti-Way
+                </span>
+                <span className="text-[var(--sidebar-text-40)] text-[10px] uppercase tracking-wider block truncate">
+                  SupplyCore
+                </span>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expandir barra lateral" : "Comprimir barra lateral"}
+            aria-label={collapsed ? "Expandir barra lateral" : "Comprimir barra lateral"}
+            aria-expanded={!collapsed}
+            className="p-1.5 rounded-md text-[var(--sidebar-text-60)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] transition-colors cursor-pointer shrink-0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {collapsed ? (
+                <polyline points="9 18 15 12 9 6" />
+              ) : (
+                <polyline points="15 18 9 12 15 6" />
+              )}
             </svg>
-          </div>
-          <div>
-            <span className="text-[var(--sidebar-text)] font-semibold text-sm tracking-tight block leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Opti-Way
-            </span>
-            <span className="text-[var(--sidebar-text-40)] text-[10px] uppercase tracking-wider block">
-              SupplyCore
-            </span>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className={`flex-1 py-4 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}>
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setScreen(item.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm transition-colors cursor-pointer text-left ${
+            title={collapsed ? item.label : undefined}
+            aria-label={item.label}
+            className={`w-full flex items-center ${collapsed ? "justify-center px-2" : "gap-2.5 px-3"} py-2.5 rounded-md text-sm transition-colors cursor-pointer text-left ${
               screen === item.id
                 ? "bg-[var(--accent)] text-[var(--on-accent)]"
                 : "text-[var(--sidebar-text-60)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)]"
             }`}
           >
             <NavIcon d={item.icon} />
-            <span className="leading-tight">{item.label}</span>
-            {!item.integrated && <PadlockIcon />}
+            {!collapsed && <span className="leading-tight truncate">{item.label}</span>}
+            {!collapsed && !item.integrated && <PadlockIcon />}
           </button>
         ))}
       </nav>
 
       {/* User footer */}
-      <div className="px-4 py-4 border-t border-[var(--sidebar-border)]">
-        <div className="mb-0.5 text-xs text-[var(--sidebar-text-40)] uppercase tracking-wide">{roleLabel}</div>
-        <div className="text-sm text-[var(--sidebar-text-80)] font-medium truncate">{userName}</div>
-        {locationName && <div className="text-xs text-[var(--sidebar-text-40)] truncate mt-0.5">{locationName}</div>}
-          <ContrastToggle />
-        <button
-          onClick={onLogout}
-          className="mt-3 text-xs text-[var(--sidebar-text-40)] hover:text-[var(--sidebar-text-70)] transition-colors cursor-pointer"
-        >
-          Cerrar sesión
-        </button>
+      <div className={`py-4 border-t border-[var(--sidebar-border)] ${collapsed ? "px-2 flex flex-col items-center gap-3" : "px-4"}`}>
+        {collapsed ? (
+          <>
+            <div
+              title={`${userName} · ${roleLabel}${locationName ? ` · ${locationName}` : ""}`}
+              className="w-8 h-8 rounded-full bg-[var(--sidebar-hover)] text-[var(--sidebar-text)] text-xs font-semibold flex items-center justify-center uppercase"
+            >
+              {userName.trim().charAt(0) || "U"}
+            </div>
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+              className="p-1.5 rounded-md text-[var(--sidebar-text-40)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] transition-colors cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mb-0.5 text-xs text-[var(--sidebar-text-40)] uppercase tracking-wide">{roleLabel}</div>
+            <div className="text-sm text-[var(--sidebar-text-80)] font-medium truncate">{userName}</div>
+            {locationName && <div className="text-xs text-[var(--sidebar-text-40)] truncate mt-0.5">{locationName}</div>}
+            <div className="mt-2">
+              <ContrastToggle />
+            </div>
+            <button
+              onClick={onLogout}
+              className="mt-3 text-xs text-[var(--sidebar-text-40)] hover:text-[var(--sidebar-text-70)] transition-colors cursor-pointer"
+            >
+              Cerrar sesión
+            </button>
+          </>
+        )}
       </div>
     </aside>
   );
