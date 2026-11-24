@@ -304,21 +304,28 @@ export default function Recomendaciones({
           <span>{error}</span>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
-            Solicitudes de tiendas
-          </h3>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 mb-6">
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[var(--text)]">
+              Solicitudes de tiendas
+            </h3>
+            {pendingSolicitudes.length > 0 && (
+              <span className="text-xs text-[var(--text-muted)]">
+                {pendingSolicitudes.length} {pendingSolicitudes.length === 1 ? "pendiente" : "pendientes"}
+              </span>
+            )}
+          </div>
           {loading ? (
             <p className="text-xs text-[var(--text-muted)]">Cargando…</p>
           ) : pendingSolicitudes.length === 0 ? (
             <EmptyState message="Sin solicitudes pendientes" />
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-[var(--border)]">
               {pendingSolicitudes.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--border)] last:border-0"
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--text)] leading-snug">
@@ -347,51 +354,26 @@ export default function Recomendaciones({
             </div>
           )}
         </Card>
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
-            Recomendaciones
-          </h3>
-          {recomendaciones.length === 0 ? (
-            <EmptyState message="Sin recomendaciones" />
-          ) : (
-            <div className="space-y-2">
-              {recomendaciones.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{nombreProducto(r.productId, r.nombreProducto)}</span>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {nombreTienda(r.destStoreId)} · CD {nombreCD(r.originDcId)}
-                    </p>
-                    {r.fueraDeCobertura && (
-                      <span className="text-xs text-[var(--warning)]">Fuera de cobertura</span>
-                    )}
-                  </div>
-                  <Badge variant={r.status === "Aprobada" ? "success" : r.status === "Rechazada" ? "danger" : "warning"}>
-                    {r.status}
-                  </Badge>
-                  <Btn size="sm" onClick={() => handleOpenReview(r)}>
-                    Revisar
-                  </Btn>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
-            Órdenes de reposición
-          </h3>
+
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[var(--text)]">
+              Órdenes de reposición
+            </h3>
+            {ordenesAprobadas.length > 0 && (
+              <span className="text-xs text-[var(--text-muted)]">
+                {ordenesAprobadas.length} {ordenesAprobadas.length === 1 ? "aprobada" : "aprobadas"}
+              </span>
+            )}
+          </div>
           {ordenesAprobadas.length === 0 ? (
             <EmptyState message="Sin órdenes de reposición" />
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-[var(--border)]">
               {ordenesAprobadas.map((o) => (
                 <div
                   key={o.id}
-                  className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--border)] last:border-0"
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--text)] leading-snug">
@@ -410,6 +392,56 @@ export default function Recomendaciones({
           )}
         </Card>
       </div>
+
+      <Card className="p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[var(--text)]">
+            Recomendaciones
+          </h3>
+          {recomendaciones.length > 0 && (
+            <span className="text-xs text-[var(--text-muted)]">
+              {recomendaciones.length} {recomendaciones.length === 1 ? "registro" : "registros"}
+            </span>
+          )}
+        </div>
+        {recomendaciones.length === 0 ? (
+          <EmptyState message="Sin recomendaciones" />
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {recomendaciones.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-[var(--text)]">
+                      {nombreProducto(r.productId, r.nombreProducto)}
+                    </span>
+                    <span className="text-xs font-medium text-[var(--text)]">
+                      {r.quantity} uds
+                    </span>
+                    {r.fueraDeCobertura && (
+                      <Badge variant="warning">Fuera de cobertura</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                    {nombreTienda(r.destStoreId)} · CD {nombreCD(r.originDcId)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={r.status === "Aprobada" ? "success" : r.status === "Rechazada" ? "danger" : "warning"}>
+                    {r.status}
+                  </Badge>
+                  <Btn size="sm" onClick={() => handleOpenReview(r)}>
+                    Revisar
+                  </Btn>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {openCreate && (
         <Modal title="Crear recomendación" onClose={closeCreate}>
