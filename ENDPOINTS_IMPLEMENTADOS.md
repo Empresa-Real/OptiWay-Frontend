@@ -168,9 +168,9 @@ Los siguientes endpoints no están implementados en el backend. Los servicios qu
 - [ ] **`GET /api/ventas/historial?tiendaId=&productoId=&desde=&hasta=`**
   - *Función frontend:* `getHistorialVentas(params)` en [`src/services/historialVentas.ts`](./src/services/historialVentas.ts)
   - *Uso:* Historial de ventas genérico (pendiente de backend; HU-19 usa `/api/demanda/patrones` y HU-27 usa `/api/reportes/rotacion`).
-- [ ] **`GET /api/centros-distribucion/{id}/ordenes`**
+- [x] **`GET /api/centros-distribucion/{id}/ordenes`**
   - *Función frontend:* `getOrdenesCD(centroDistribucionId)` en [`src/services/ordenes.ts`](./src/services/ordenes.ts)
-  - *Uso:* Órdenes entrantes de solo lectura para el CD (pantalla Órdenes entrantes).
+  - *Uso:* Órdenes entrantes de solo lectura para el CD ([`src/pages/dc/OrdenesEntrantes.tsx`](./src/pages/dc/OrdenesEntrantes.tsx)).
 - [ ] **`GET /api/tiendas/{id}/solicitudes-reposicion`**
   - *Uso:* Historial de solicitudes de una tienda. **Flujo local:** la pantalla de tienda solo muestra las solicitudes creadas en la sesión.
 - [ ] **`GET /api/recomendaciones-reposicion/{id}/historial`**
