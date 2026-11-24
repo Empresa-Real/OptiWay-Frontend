@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
-import type { Product, SalesHistoryItem, Store } from "../../types";
-import { getHistorialVentas, getSalesWeeks } from "../../services/historialVentas";
+import { useState, type FormEvent } from "react";
+import type { Product, Store } from "../../types";
+import {
+  consultarPatronesDemanda,
+  type PatronesDemandaResponse,
+} from "../../services/patronesDemanda";
 import {
   Badge,
+  Btn,
   Card,
-  EmptyState,
   Input,
   Label,
   SectionHeader,
@@ -20,265 +23,245 @@ export default function PatronesDeDemanda({
   products,
   stores,
 }: PatronesDeDemandaProps) {
-  const salesWeeks = getSalesWeeks();
-  const [filters, setFilters] = useState({
-    productId: "",
-    from: salesWeeks[0],
-    to: salesWeeks[salesWeeks.length - 1],
-  });
-  const [storeId, setStoreId] = useState(String(stores[0]?.id ?? ""));
-  const [comparisonStores, setComparisonStores] = useState<number[]>(
-    stores.slice(0, 2).map((store) => store.id),
-  );
-  const [salesData, setSalesData] = useState<SalesHistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState("");
+  const [productoId, setProductoId] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [tiendaIds, setTiendaIds] = useState<number[]>([]);
+  const [resultado, setResultado] = useState<PatronesDemandaResponse | null>(null);
+  const [tiendaDetalle, setTiendaDetalle] = useState<number | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    setHistoryLoading(true);
-    setHistoryError("");
-    const params: { tiendaId?: number; productoId?: string; desde?: string; hasta?: string } = {};
-    if (filters.productId) params.productoId = filters.productId;
-    if (filters.from) params.desde = filters.from;
-    if (filters.to) params.hasta = filters.to;
-    if (storeId) params.tiendaId = Number(storeId);
-    getHistorialVentas(params)
-      .then((data) => {
-        if (!cancelled) setSalesData(data);
-      })
-      .catch((err: any) => {
-        if (!cancelled) setHistoryError(err?.message || "No se pudo cargar el historial de ventas");
-      })
-      .finally(() => {
-        if (!cancelled) setHistoryLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.productId, filters.from, filters.to, storeId]);
+  const fechaActual = new Date();
+  const anio = fechaActual.getFullYear();
+  const mes = String(fechaActual.getMonth() + 1).padStart(2, "0");
+  const dia = String(fechaActual.getDate()).padStart(2, "0");
+  const hoy = `${anio}-${mes}-${dia}`;
 
-  const dateError =
-    filters.from && filters.to && filters.from > filters.to;
-  const activeProducts = products.filter((p) => p.status === "active");
-  const sales = historyError || historyLoading ? [] : salesData;
-  const filteredSales = !dateError && filters.productId
-    ? sales.filter(
-        (sale) =>
-          sale.productId === filters.productId &&
-          (!filters.from || sale.date >= filters.from) &&
-          (!filters.to || sale.date <= filters.to),
-      )
-    : [];
-  const evolution = salesWeeks
-    .filter(
-      (week) =>
-        (!filters.from || week >= filters.from) &&
-        (!filters.to || week <= filters.to),
-    )
-    .map((week) => ({
-      week,
-      quantity: filteredSales
-        .filter(
-          (sale) =>
-            sale.storeId === Number(storeId) && sale.date === week,
-        )
-        .reduce((sum, sale) => sum + sale.quantity, 0),
-    }));
-  const maxEvolution = Math.max(1, ...evolution.map((item) => item.quantity));
-  const comparison = comparisonStores
-    .map((selectedStoreId) => ({
-      store: stores.find((store) => store.id === selectedStoreId),
-      quantity: filteredSales
-        .filter((sale) => sale.storeId === selectedStoreId)
-        .reduce((sum, sale) => sum + sale.quantity, 0),
-    }))
-    .filter((item): item is { store: Store; quantity: number } => Boolean(item.store))
-    .sort((a, b) => b.quantity - a.quantity);
-  const maxComparison = Math.max(1, ...comparison.map((item) => item.quantity));
-
-  const toggleComparisonStore = (selectedStoreId: number) => {
-    setComparisonStores((prev) =>
-      prev.includes(selectedStoreId)
-        ? prev.filter((id) => id !== selectedStoreId)
-        : [...prev, selectedStoreId],
+  function cambiarTienda(id: number) {
+    setTiendaIds((actuales) =>
+      actuales.includes(id)
+        ? actuales.filter((actual) => actual !== id)
+        : [...actuales, id],
     );
-  };
+  }
+
+  async function consultar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (cargando) return;
+
+    setError("");
+    setResultado(null);
+
+    if (!productoId || !desde || !hasta || tiendaIds.length === 0) {
+      setError("Selecciona un producto, al menos una tienda y ambas fechas.");
+      return;
+    }
+
+    const formatoFecha = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (!formatoFecha.test(desde) || !formatoFecha.test(hasta)) {
+      setError("Ingresa ambas fechas con un año de cuatro cifras.");
+      return;
+    }
+
+    if (desde > hoy || hasta > hoy) {
+      setError("Las fechas del histórico no pueden ser posteriores a hoy.");
+      return;
+    }
+
+    if (hasta < desde) {
+      setError("La fecha final debe ser igual o posterior a la inicial.");
+      return;
+    }
+
+    setCargando(true);
+
+    try {
+      const datos = await consultarPatronesDemanda({
+        productoId: Number(productoId),
+        tiendaIds,
+        desde,
+        hasta,
+      });
+
+      setResultado(datos);
+      setTiendaDetalle(datos.tiendas[0]?.tiendaId ?? null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo consultar la demanda.",
+      );
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  function nombreTienda(id: number) {
+    return stores.find((tienda) => tienda.id === id)?.name ?? `Tienda ${id}`;
+  }
+
+  const detalle = resultado?.tiendas.find(
+    (tienda) => tienda.tiendaId === tiendaDetalle,
+  );
+
+  const maximoDiario =
+    detalle?.evolucion.reduce(
+      (maximo, dia) => Math.max(maximo, dia.unidadesVendidas),
+      1,
+    ) ?? 1;
+
   return (
-    <div>
+    <div className="space-y-4">
       <SectionHeader
         title="Patrones de demanda"
         subtitle="Histórico de ventas por producto y tienda"
       />
-      {historyError && (
-        <div className="mb-4 flex items-start gap-2 text-sm text-[var(--danger)] bg-[var(--danger-light)] rounded-md px-3 py-2.5">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 shrink-0">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-          </svg>
-          <span>{historyError}</span>
-        </div>
-      )}
-      <Card className="mb-6 p-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <Label>Producto</Label>
-            <Select
-              value={filters.productId}
-              onChange={(event) =>
-                setFilters({ ...filters, productId: event.target.value })
-              }
-            >
-              <option value="">Selecciona un producto…</option>
-              {activeProducts.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label>Desde</Label>
-            <Input
-              type="date"
-              value={filters.from}
-              onChange={(event) =>
-                setFilters({ ...filters, from: event.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label>Hasta</Label>
-            <Input
-              type="date"
-              value={filters.to}
-              onChange={(event) =>
-                setFilters({ ...filters, to: event.target.value })
-              }
-            />
-          </div>
-        </div>
-        {dateError && (
-          <p className="mt-2 text-xs text-[var(--danger)]">
-            La fecha inicial no puede ser posterior a la final
+
+      <Card className="p-5">
+        <form onSubmit={consultar}>
+          <fieldset disabled={cargando} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label>Producto</Label>
+                <Select
+                  aria-label="Producto"
+                  value={productoId}
+                  onChange={(event) => setProductoId(event.target.value)}
+                >
+                  <option value="">Selecciona un producto…</option>
+                  {products
+                    .filter((p) => p.status === "active")
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </Select>
+              </div>
+
+              <div>
+                <Label>Desde</Label>
+                <Input
+                  aria-label="Desde"
+                  type="date"
+                  value={desde}
+                  max={hoy}
+                  onChange={(event) => setDesde(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label>Hasta</Label>
+                <Input
+                  aria-label="Hasta"
+                  type="date"
+                  value={hasta}
+                  min={desde || undefined}
+                  max={hoy}
+                  onChange={(event) => setHasta(event.target.value)}
+                />
+              </div>
+            </div>
+
+            <fieldset>
+              <legend className="mb-2 font-medium">Tiendas</legend>
+              <div className="flex flex-wrap gap-4">
+                {stores.map((tienda) => (
+                  <label key={tienda.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={tiendaIds.includes(tienda.id)}
+                      onChange={() => cambiarTienda(tienda.id)}
+                    />
+                    {tienda.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <Btn type="submit">
+              {cargando ? "Consultando…" : "Consultar"}
+            </Btn>
+          </fieldset>
+        </form>
+
+        {error && (
+          <p role="alert" className="mt-3 text-red-700">
+            {error}
           </p>
         )}
       </Card>
 
-      {!filters.productId ? (
-        <Card>
-          <EmptyState message="Selecciona un producto para ver su demanda" />
-        </Card>
-      ) : filteredSales.length === 0 || dateError ? (
-        <Card>
-          <EmptyState message="Sin ventas en el rango seleccionado" />
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <Card className="p-6">
-            <div className="mb-3 flex w-56 items-end gap-3 border-b border-[var(--border)] px-2">
-              <div className="flex-1">
-                <Label>Tienda</Label>
-                <Select
-                  value={storeId}
-                  onChange={(event) => setStoreId(event.target.value)}
-                >
-                  {stores.map((store) => (
-                    <option key={store.id} value={store.id}>
-                      {store.name}
-                    </option>
-                  ))}
-                </Select>
+      {resultado && (
+        <Card className="space-y-4 p-5">
+          <h2 className="font-semibold">Ventas por tienda</h2>
+
+          <p className="text-sm">
+            {products.find((p) => p.id === String(resultado.productoId))?.name
+              ?? `Producto ${resultado.productoId}`}
+            {" · "}
+            {resultado.desde} al {resultado.hasta}
+          </p>
+
+          {resultado.tiendas.map((tienda) => {
+            const comparar = resultado.tiendas.length > 1;
+            const mayor = resultado.tiendasMayorRotacion.includes(tienda.tiendaId);
+            const menor = resultado.tiendasMenorRotacion.includes(tienda.tiendaId);
+
+            return (
+              <div
+                key={tienda.tiendaId}
+                className="flex flex-wrap items-center gap-3"
+              >
+                <span>{nombreTienda(tienda.tiendaId)}</span>
+                <strong>{tienda.unidadesVendidas} uds</strong>
+
+                {comparar && mayor && menor && (
+                  <Badge variant="neutral">Igual rotación</Badge>
+                )}
+                {comparar && mayor && !menor && (
+                  <Badge variant="success">Mayor rotación</Badge>
+                )}
+                {comparar && menor && !mayor && (
+                  <Badge variant="warning">Menor rotación</Badge>
+                )}
               </div>
-            </div>
-            <h2 className="text-base font-semibold text-[var(--text)]">
-              Evolución de ventas
-            </h2>
-            <div className="flex h-56 items-end gap-3 border-b border-[var(--border)] px-2">
-              {evolution.map((item) => (
-                <div
-                  key={item.week}
-                  className="flex h-full flex-1 flex-col items-center justify-end"
-                >
-                  <span className="mb-1 text-xs font-medium text-[var(--text)]">
-                    {item.quantity}
-                  </span>
-                  <div
-                    className="chart-bar w-full max-w-12 rounded-t bg-[var(--accent)]"
-                    style={{
-                      height: `${Math.max(
-                        4,
-                        (item.quantity / maxEvolution) * 75,
-                      )}%`,
-                    }}
+            );
+          })}
+
+          {detalle && (
+            <div className="space-y-3">
+              <h2 className="font-semibold">Evolución diaria</h2>
+
+              <Select
+                aria-label="Tienda para ver su evolución diaria"
+                value={String(detalle.tiendaId)}
+                onChange={(event) => setTiendaDetalle(Number(event.target.value))}
+              >
+                {resultado.tiendas.map((tienda) => (
+                  <option key={tienda.tiendaId} value={tienda.tiendaId}>
+                    {nombreTienda(tienda.tiendaId)}
+                  </option>
+                ))}
+              </Select>
+
+              {detalle.evolucion.map((dia) => (
+                <div key={dia.fecha} className="flex items-center gap-3 text-sm">
+                  <span>{dia.fecha}</span>
+                  <progress
+                    aria-label={`Ventas del ${dia.fecha}`}
+                    className="flex-1"
+                    max={maximoDiario}
+                    value={dia.unidadesVendidas}
                   />
-                  <span className="mt-2 pb-2 text-center text-xs text-[var(--text-muted)]">
-                    {new Date(`${item.week}T12:00:00`).toLocaleDateString(
-                      "es-MX",
-                      { day: "2-digit", month: "short" },
-                    )}
-                  </span>
+                  <span>{dia.unidadesVendidas} uds</span>
                 </div>
               ))}
             </div>
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="text-base font-semibold text-[var(--text)]">
-              Comparar tiendas
-            </h2>
-            <div className="my-4 flex flex-wrap gap-4">
-              {stores.map((store) => (
-                <label
-                  key={store.id}
-                  className="flex cursor-pointer items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={comparisonStores.includes(store.id)}
-                    onChange={() => toggleComparisonStore(store.id)}
-                    className="accent-[var(--accent)]"
-                  />
-                  {store.name}
-                </label>
-              ))}
-            </div>
-            {comparisonStores.length < 2 ? (
-              <p className="text-sm text-[var(--text-muted)]">
-                Selecciona al menos dos tiendas para comparar.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {comparison.map((item, index) => (
-                  <div key={item.store.id}>
-                    <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium">{item.store.name}</span>
-                      <div className="flex items-center gap-2">
-                        {index === 0 && (
-                          <Badge variant="success">Mayor rotación</Badge>
-                        )}
-                        {index === comparison.length - 1 &&
-                          comparison.length > 1 && (
-                            <Badge variant="warning">
-                              Menor rotación
-                            </Badge>
-                          )}
-                        <span className="text-[var(--text-muted)]">
-                          {item.quantity} uds
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded bg-[var(--surface-muted)]">
-                      <div
-                        className="chart-bar h-2 rounded bg-[var(--accent)]"
-                        style={{ width: `${(item.quantity / maxComparison) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
+          )}
+        </Card>
       )}
     </div>
   );
