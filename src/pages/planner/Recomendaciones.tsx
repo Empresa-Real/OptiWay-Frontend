@@ -318,19 +318,30 @@ export default function Recomendaciones({
               {pendingSolicitudes.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 text-sm"
+                  className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--border)] last:border-0"
                 >
-                  <div>
-                    <span className="font-medium">
-                      {nombreProducto(s.productId, s.nombreProducto)} — {s.quantity} uds
-                    </span>
-                    <p className="text-xs text-[var(--text-muted)]">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text)] leading-snug">
+                      {nombreProducto(s.productId, s.nombreProducto)}
+                    </p>
+                    <p className="text-xs font-medium text-[var(--text)] mt-0.5">
+                      {s.quantity} uds
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
                       {nombreTienda(s.storeId)}
                     </p>
                   </div>
-                  <Btn size="sm" onClick={() => handleOpenCreate(s.id)}>
-                    Crear recomendación
-                  </Btn>
+                  <span className="shrink-0" title="Crear recomendación">
+                    <Btn
+                      size="sm"
+                      onClick={() => handleOpenCreate(s.id)}
+                      className="!px-2.5"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-label="Crear recomendación">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </Btn>
+                  </span>
                 </div>
               ))}
             </div>
