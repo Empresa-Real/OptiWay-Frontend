@@ -325,20 +325,18 @@ export default function Recomendaciones({
               {pendingSolicitudes.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                  className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2.5 first:pt-0 last:pb-0"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text)] leading-snug">
-                      {nombreProducto(s.productId, s.nombreProducto)}
-                    </p>
-                    <p className="text-xs font-medium text-[var(--text)] mt-0.5">
-                      {s.quantity} uds
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                      {nombreTienda(s.storeId)}
-                    </p>
-                  </div>
-                  <span className="shrink-0" title="Crear recomendación">
+                  <p className="min-w-0 text-sm font-semibold text-[var(--text)] leading-snug">
+                    {nombreProducto(s.productId, s.nombreProducto)}
+                  </p>
+                  <span className="text-right text-xs font-medium text-[var(--text)]">
+                    {s.quantity} uds
+                  </span>
+                  <p className="min-w-0 text-xs text-[var(--text-muted)]">
+                    {nombreTienda(s.storeId)}
+                  </p>
+                  <span className="justify-self-end" title="Crear recomendación">
                     <Btn
                       size="sm"
                       onClick={() => handleOpenCreate(s.id)}
