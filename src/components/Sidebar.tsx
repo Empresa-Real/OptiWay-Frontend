@@ -123,14 +123,29 @@ function Sidebar({
     >
       {/* Logo + collapse toggle */}
       <div className={`pt-5 pb-4 border-b border-[var(--sidebar-border)] ${collapsed ? "px-2" : "px-4"}`}>
-        <div className={`flex items-center ${collapsed ? "flex-col gap-3" : "justify-between gap-2"}`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center shrink-0">
+        {collapsed ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Expandir barra lateral"
+              aria-label="Expandir barra lateral"
+              aria-expanded={false}
+              className="w-8 h-8 rounded bg-[var(--accent)] hover:opacity-90 flex items-center justify-center transition-opacity cursor-pointer shrink-0"
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
                 <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
               </svg>
-            </div>
-            {!collapsed && (
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                  <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
+                </svg>
+              </div>
               <div className="min-w-0">
                 <span className="text-[var(--sidebar-text)] font-semibold text-sm tracking-tight block leading-tight truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   Opti-Way
@@ -139,25 +154,21 @@ function Sidebar({
                   SupplyCore
                 </span>
               </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            title={collapsed ? "Expandir barra lateral" : "Comprimir barra lateral"}
-            aria-label={collapsed ? "Expandir barra lateral" : "Comprimir barra lateral"}
-            aria-expanded={!collapsed}
-            className="p-1.5 rounded-md text-[var(--sidebar-text-60)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] transition-colors cursor-pointer shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {collapsed ? (
-                <polyline points="9 18 15 12 9 6" />
-              ) : (
+            </div>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Comprimir barra lateral"
+              aria-label="Comprimir barra lateral"
+              aria-expanded={true}
+              className="p-1.5 rounded-md text-[var(--sidebar-text-60)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] transition-colors cursor-pointer shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
-              )}
-            </svg>
-          </button>
-        </div>
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
