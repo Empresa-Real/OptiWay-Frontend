@@ -148,6 +148,14 @@ Este documento registra el avance de conexión entre el frontend (**OptiWay-Fron
   - *Vista:* [`src/pages/shared/InventoryView.tsx`](./src/pages/shared/InventoryView.tsx) (tienda y CD)
 - **Comportamiento:** tras guardar, se vuelve a consultar el inventario al backend (sin overlay de mocks). El historial del modal contiene solo los ajustes de la sesión, tomados de la respuesta del `POST`.
 
+### 8.5 HU-27 — Reporte de rotación de productos
+- [x] **`GET /api/reportes/rotacion?tiendaId=&desde=&hasta=`**
+  - *Función frontend:* `consultarReporteRotacion({ tiendaId, desde, hasta })` en [`src/services/reporteRotacion.ts`](./src/services/reporteRotacion.ts)
+  - *Vista:* [`src/pages/planner/RotacionProductos.tsx`](./src/pages/planner/RotacionProductos.tsx)
+- [x] **`GET /api/reportes/rotacion/exportar?tiendaId=&desde=&hasta=`**
+  - *Función frontend:* `exportarReporteRotacionCsv({ tiendaId, desde, hasta })` en [`src/services/reporteRotacion.ts`](./src/services/reporteRotacion.ts)
+  - *Vista:* Botón "Exportar reporte" en [`src/pages/planner/RotacionProductos.tsx`](./src/pages/planner/RotacionProductos.tsx)
+
 ---
 
 ## 9. Sprint 3 — Pendientes de backend
@@ -159,7 +167,7 @@ Los siguientes endpoints no están implementados en el backend. Los servicios qu
   - *Uso:* Consultar órdenes pendientes al desactivar tienda (HU-08) y listar órdenes reales del Planificador (HU-21).
 - [ ] **`GET /api/ventas/historial?tiendaId=&productoId=&desde=&hasta=`**
   - *Función frontend:* `getHistorialVentas(params)` en [`src/services/historialVentas.ts`](./src/services/historialVentas.ts)
-  - *Uso:* Historial de ventas para patrones de demanda y rotación (HU-19, HU-27).
+  - *Uso:* Historial de ventas genérico (pendiente de backend; HU-19 usa `/api/demanda/patrones` y HU-27 usa `/api/reportes/rotacion`).
 - [ ] **`GET /api/centros-distribucion/{id}/ordenes`**
   - *Función frontend:* `getOrdenesCD(centroDistribucionId)` en [`src/services/ordenes.ts`](./src/services/ordenes.ts)
   - *Uso:* Órdenes entrantes de solo lectura para el CD (pantalla Órdenes entrantes).
