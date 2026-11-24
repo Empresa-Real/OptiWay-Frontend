@@ -10,8 +10,10 @@ import {
   Card,
   Input,
   Label,
+  ListSkeleton,
   SectionHeader,
   Select,
+  Skeleton,
 } from "../../components/ui";
 
 interface PatronesDeDemandaProps {
@@ -287,6 +289,13 @@ export default function PatronesDeDemanda({
           </p>
         )}
       </Card>
+
+      {cargando && (
+        <Card className="space-y-4 p-5">
+          <Skeleton className="h-5 w-40" />
+          <ListSkeleton rows={4} />
+        </Card>
+      )}
 
       {resultado && (
         <Card className="space-y-4 p-5">

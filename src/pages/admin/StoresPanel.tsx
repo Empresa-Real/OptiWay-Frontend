@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Store } from "../../types";
-import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table, TableSkeleton } from "../../components/ui";
 import { getTiendas, createTienda, cambiarEstadoTienda } from "../../services/tiendas";
 import { ApiError } from "../../services/http";
 
@@ -111,7 +111,14 @@ export default function StoresPanel({ stores: propStores, onUpdateStores }: Stor
   };
 
   if (initialLoading) {
-    return null;
+    return (
+      <div>
+        <SectionHeader title="Tiendas" subtitle="Gestión de tiendas" />
+        <Card>
+          <TableSkeleton rows={5} columns={5} />
+        </Card>
+      </div>
+    );
   }
 
   const rows = stores.map((s) => [

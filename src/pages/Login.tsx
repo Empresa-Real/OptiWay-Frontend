@@ -17,15 +17,20 @@ export default function Login({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<EstadisticasPublicas | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setStatsLoading(true);
     getEstadisticasPublicas()
       .then((data) => {
         if (!cancelled) setStats(data);
       })
       .catch(() => {
         // Estadísticas públicas opcionales en la pantalla de login
+      })
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -89,7 +94,19 @@ export default function Login({
         </div>
 
         <div className="relative z-10 space-y-5">
-          {stats && (
+          {statsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-busy="true" aria-label="Cargando estadísticas">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-white/10 bg-slate-900/70 backdrop-blur-sm px-4 py-3 animate-pulse"
+                >
+                  <div className="h-3 w-16 rounded bg-white/15" />
+                  <div className="h-6 w-12 rounded bg-white/25 mt-2" />
+                </div>
+              ))}
+            </div>
+          ) : stats ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="rounded-lg border border-white/10 bg-slate-900/70 backdrop-blur-sm px-4 py-3">
                 <p className="text-[11px] uppercase tracking-wider text-slate-400">Tiendas</p>
@@ -116,7 +133,7 @@ export default function Login({
                 <p className="text-xl font-semibold text-white mt-0.5">{stats.registrosInventario.toLocaleString("es-CO")}</p>
               </div>
             </div>
-          )}
+          ) : null}
           <div className="border-t border-[var(--sidebar-border)] pt-5 flex items-center justify-between">
             <div>
               <p className="text-[var(--sidebar-text-40)] text-xs font-medium">Opti-Way · Versión 1.0</p>

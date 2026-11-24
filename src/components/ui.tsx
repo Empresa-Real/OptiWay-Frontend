@@ -182,4 +182,55 @@ const Table = ({
   </div>
 );
 
-export { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState, Modal, Table };
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    aria-hidden="true"
+    className={`animate-pulse rounded bg-[var(--surface-muted)] ${className}`}
+  />
+);
+
+const TableSkeleton = ({
+  rows = 5,
+  columns = 4,
+}: {
+  rows?: number;
+  columns?: number;
+}) => (
+  <div className="p-4 space-y-3" aria-busy="true" aria-label="Cargando tabla">
+    <div className="grid gap-4 pb-2 border-b border-[var(--border)]" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      {Array.from({ length: columns }).map((_, idx) => (
+        <Skeleton key={idx} className="h-3 w-20" />
+      ))}
+    </div>
+    {Array.from({ length: rows }).map((_, rowIdx) => (
+      <div
+        key={rowIdx}
+        className="grid gap-4 py-2 border-b border-[var(--border)] last:border-0"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: columns }).map((__, colIdx) => (
+          <Skeleton
+            key={colIdx}
+            className={`h-4 ${colIdx === 0 ? "w-4/5" : "w-3/5"}`}
+          />
+        ))}
+      </div>
+    ))}
+  </div>
+);
+
+const ListSkeleton = ({ rows = 3 }: { rows?: number }) => (
+  <div className="divide-y divide-[var(--border)]" aria-busy="true" aria-label="Cargando lista">
+    {Array.from({ length: rows }).map((_, idx) => (
+      <div key={idx} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+        <div className="space-y-1.5 flex-1">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+        <Skeleton className="h-7 w-14 rounded-md shrink-0" />
+      </div>
+    ))}
+  </div>
+);
+
+export { Badge, Btn, Input, Select, Label, Card, SectionHeader, EmptyState, Modal, Table, Skeleton, TableSkeleton, ListSkeleton };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { InventoryItem } from "../../types";
 import { getInventarioTienda, getInventarioCD, ajustarInventario } from "../../services/inventario";
-import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table, TableSkeleton } from "../../components/ui";
 
 function parseProductIdSearch(term: string): number | null {
   if (!/^\d+$/.test(term)) return null;
@@ -238,7 +238,9 @@ export default function InventoryView({
         </div>
       )}
       {waitingForResults && hasNoResultsYet ? (
-        <div className="p-4 text-sm text-[var(--text-muted)]">Cargando inventario...</div>
+        <Card>
+          <TableSkeleton rows={6} columns={4} />
+        </Card>
       ) : (
         <Card>
           {waitingForResults && <p className="mb-2 px-1 text-xs text-[var(--text-muted)]">Buscando...</p>}

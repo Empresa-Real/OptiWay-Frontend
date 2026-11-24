@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Order, Product, Store } from "../../types";
-import { Badge, Card, EmptyState, SectionHeader, Table } from "../../components/ui";
+import { Badge, Card, EmptyState, SectionHeader, Table, TableSkeleton } from "../../components/ui";
 import { getOrdenesCD } from "../../services/ordenes";
 
 interface OrdenesEntrantesProps {
@@ -49,7 +49,7 @@ export default function OrdenesEntrantes({
       />
       <Card>
         {loading ? (
-          <EmptyState message="Cargando órdenes entrantes…" />
+          <TableSkeleton rows={4} columns={5} />
         ) : ordenes.length === 0 ? (
           <EmptyState message="Sin órdenes entrantes" />
         ) : (

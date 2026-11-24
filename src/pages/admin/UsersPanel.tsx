@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Asignacion, User, Store, DC } from "../../types";
-import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { Badge, Btn, Input, Select, Label, Card, SectionHeader, Modal, Table, TableSkeleton } from "../../components/ui";
 import {
   getUsuarios,
   createUsuario,
@@ -486,9 +486,7 @@ export default function UsersPanel({
       />
       <Card>
         {loading && users.length === 0 ? (
-          <div className="py-12 text-center text-sm text-[var(--text-muted)]">
-            Cargando usuarios desde el servidor...
-          </div>
+          <TableSkeleton rows={6} columns={6} />
         ) : (
           <Table
             headers={["Nombre", "Correo", "Rol", "Ubicación", "Estado", "Acciones"]}

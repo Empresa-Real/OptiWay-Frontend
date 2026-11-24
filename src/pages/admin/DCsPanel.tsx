@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { DC, Store } from "../../types";
 import { getCentrosDistribucion, createCentroDistribucion, cambiarEstadoCentroDistribucion } from "../../services/centrosDistribucion";
-import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table } from "../../components/ui";
+import { Badge, Btn, Input, Label, Card, SectionHeader, Modal, Table, TableSkeleton } from "../../components/ui";
 
 function ErrorBanner({ message }: { message: string }) {
   if (!message) return null;
@@ -160,7 +160,14 @@ export default function DCsPanel({ stores, dcs: propDCs, onUpdateDCs }: DCsPanel
   ]);
 
   if (initialLoading) {
-    return <div className="p-4 text-sm text-[var(--text-muted)]">Cargando centros de distribución...</div>;
+    return (
+      <div>
+        <SectionHeader title="Centros de distribución" subtitle="Gestión de centros de distribución" />
+        <Card>
+          <TableSkeleton rows={5} columns={5} />
+        </Card>
+      </div>
+    );
   }
 
   return (

@@ -13,6 +13,7 @@ import {
   EmptyState,
   Input,
   Label,
+  ListSkeleton,
   Modal,
   SectionHeader,
   Select,
@@ -317,7 +318,7 @@ export default function Recomendaciones({
             )}
           </div>
           {loading ? (
-            <p className="text-xs text-[var(--text-muted)]">Cargando…</p>
+            <ListSkeleton rows={3} />
           ) : pendingSolicitudes.length === 0 ? (
             <EmptyState message="Sin solicitudes pendientes" />
           ) : (
@@ -364,7 +365,9 @@ export default function Recomendaciones({
               </span>
             )}
           </div>
-          {ordenesAprobadas.length === 0 ? (
+          {loading ? (
+            <ListSkeleton rows={3} />
+          ) : ordenesAprobadas.length === 0 ? (
             <EmptyState message="Sin órdenes de reposición" />
           ) : (
             <div className="divide-y divide-[var(--border)]">
@@ -402,7 +405,9 @@ export default function Recomendaciones({
             </span>
           )}
         </div>
-        {recomendaciones.length === 0 ? (
+        {loading ? (
+          <ListSkeleton rows={4} />
+        ) : recomendaciones.length === 0 ? (
           <EmptyState message="Sin recomendaciones" />
         ) : (
           <div className="divide-y divide-[var(--border)]">

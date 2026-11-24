@@ -16,6 +16,7 @@ import {
   SectionHeader,
   Select,
   Table,
+  TableSkeleton,
 } from "../../components/ui";
 
 interface RotacionProductosProps {
@@ -237,15 +238,13 @@ export default function RotacionProductos({
           {feedback}
         </div>
       )}
-      {!report ? (
+      {loading ? (
         <Card>
-          <EmptyState
-            message={
-              loading
-                ? "Consultando reporte de rotación…"
-                : "Selecciona una tienda y un rango de fechas para generar el reporte"
-            }
-          />
+          <TableSkeleton rows={5} columns={5} />
+        </Card>
+      ) : !report ? (
+        <Card>
+          <EmptyState message="Selecciona una tienda y un rango de fechas para generar el reporte" />
         </Card>
       ) : report.productos.length === 0 ? (
         <Card>
